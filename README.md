@@ -15,10 +15,19 @@ Harus dibuka lewat **HTTPS** (atau localhost) karena memakai Web Crypto.
 | `js/core.js` | utilitas, enkripsi, penyimpanan, event delegation |
 | `js/icons.js` | set ikon SVG (tambah ikon: `ICONS.nama='<path …/>'`) |
 | `js/fx.js` | efek latar interaktif |
-| `js/app.js` · `js/report.js` | halaman & dokumen |
+| `js/app.js` · `js/report.js` | halaman & laporan |
+| `js/docs.js` · `js/docx-export.js` | kop surat, SPT/SPD/Lampiran, ekspor .docx (`js/vendor/docx.iife.js`, lisensi MIT) |
 | `js/ui.js` | menu Tampilan & Tema · `js/auth.js` login, peran, sesi |
 | `assets/` | `logo.svg`, `bg.svg`, font |
 | `contoh-data/` | CSV contoh pegawai — **tidak ikut diunggah ke Vercel** (`.vercelignore`) |
+
+## Dokumen cetak & Word
+- **Kop surat** model Executive Summary Setda Prov. Sultra (lambang kiri, 3 baris, garis tebal). Ubah teks/logo di **Pengaturan Instansi**, atau pilih **Gambar kop jadi** untuk memakai gambar kop resmi utuh.
+- **Surat Tugas, SPD, Lampiran SPD** mengikuti contoh SPT (tabel a/b/c, pengikut, *Coret yang tidak perlu, lembar I–VI, PERHATIAN).
+- **Tanda tangan**: *Elektronik (TTE)* → kotak "Ditandatangani secara elektronik oleh" berisi penanda `${ttd}` + catatan UU ITE/BSrE di kaki halaman; atau *Basah/manual*.
+- **Laporan Perjalanan** model Bandung: kop hanya halaman 1, nomor halaman kanan atas, dokumentasi 2 foto/halaman.
+- **Unduh Word (.docx asli)** di menu Cetak Dokumen: kop di header, catatan di footer — bisa dibuka di MS Word, WPS, LibreOffice, Google Docs, lalu diunggah ke aplikasi TTE (penanda `${ttd}` diganti QR).
+- Cetak PDF: pilih "Simpan sebagai PDF", ukuran A4, matikan opsi *Header dan footer* browser.
 
 ## Mengganti tampilan kapan saja
 Menu **Tampilan & Tema** (Administrator): logo, gambar latar, 8 skema warna + warna bebas, mode gelap/terang/otomatis,

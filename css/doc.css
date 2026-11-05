@@ -1,30 +1,97 @@
-/* Dokumen cetak (SPD, Lampiran, Surat Tugas, Laporan). Juga disematkan saat ekspor Word. */
-.paper{background:#fff;width:210mm;min-height:297mm;padding:15mm;margin:0 auto 16px;font:11pt/1.4 'Times New Roman',serif;box-sizing:border-box;color:#000;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);zoom:var(--pz,1);border-radius:2px}
+/* ============================================================
+   DOKUMEN CETAK — kop model Executive Summary Setda Sultra,
+   SPT/SPD/Lampiran model contoh SPT (TTE), Laporan model Bandung.
+   Font: Tinos (setara metrik Times New Roman) & Caprasimo (mirip Cooper Black),
+   disertakan lokal agar hasil cetak sama di semua perangkat.
+   ============================================================ */
+@font-face{font-family:'Tinos';font-weight:400;font-style:normal;font-display:swap;src:url(../assets/fonts/tinos-400.woff2) format('woff2')}
+@font-face{font-family:'Tinos';font-weight:700;font-style:normal;font-display:swap;src:url(../assets/fonts/tinos-700.woff2) format('woff2')}
+@font-face{font-family:'Caprasimo';font-weight:400;font-style:normal;font-display:swap;src:url(../assets/fonts/caprasimo.woff2) format('woff2')}
+
+.paper{--serif:'Tinos','Times New Roman',Times,serif;background:#fff;width:210mm;min-height:297mm;padding:14mm 18mm 12mm;margin:0 auto 16px;font:11pt/1.35 var(--serif);box-sizing:border-box;color:#000;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);zoom:var(--pz,1);border-radius:2px}
 .paper *{color:#000}
 .paper table{border-collapse:collapse}
-.paper table.dt{width:100%}.paper .dt td{border:1px solid #000;padding:3px 6px;vertical-align:top}
-.kop{display:flex;align-items:center;gap:12px;border-bottom:3px double #000;padding-bottom:8px;margin-bottom:12px;text-align:center}
-.kop-l{height:70px;width:auto}.kop-t{flex:1}.kop-i{font-weight:bold;font-size:15pt}.kop-a{font-size:9pt}
-.sig{width:55%;margin-left:45%;text-align:center;margin-top:20px}
-.c-no{width:7%;text-align:center}.c-lb{width:38%}.c-n6{width:6%}.c-47{width:47%}
-.w100{width:100%}.w36{width:36%}.w60{width:60px}.w130{width:130px}.top{vertical-align:top}.ctr{text-align:center}
-.d-r{text-align:right;font-size:10pt}.d-h{text-align:center;margin:10px 0;font-size:13pt}.d-h2{text-align:center;margin:8px 0 0;font-size:13pt}.d-no{text-align:center;margin-bottom:12px}
-.d-iss{margin:14px 0 0 45%}.d-mg{margin:10px 0}.d-p{margin:12px 0}
-.lamp-h{margin:0 0 12px 18%}
-.paper.lap{font:11pt/1.5 Arial,Helvetica,sans-serif}
+.paper p{margin:0}
+.paper.fx{display:flex;flex-direction:column}.paper.fx .pbody{flex:1}
+
+/* ---------- Kop surat ---------- */
+.kop2{display:flex;align-items:center;gap:4mm;padding-bottom:2.2mm;border-bottom:2.4mm solid #000;margin-bottom:6mm}
+.kop2-l{height:23mm;width:auto;flex:none;margin-left:-1mm}
+.kop2-t{flex:1;text-align:center;line-height:1.15;padding-right:4mm}
+.kop2 .k1{font:700 13.5pt/1.2 var(--serif);word-spacing:.32em;letter-spacing:.01em}
+.kop2 .k2{font:400 22pt/1.15 'Caprasimo','Cooper Black','Bookman Old Style',serif;letter-spacing:.06em;margin:.4mm 0 1.2mm}
+.kop2 .k3{font:400 9.6pt/1.2 var(--serif)}
+.kopimg{margin:0 0 6mm}.kopimg img{display:block;width:100%;height:auto}
+.kopw{width:100%}.kopw-l{width:95px;vertical-align:middle}
+
+/* ---------- Umum ---------- */
+.ttl1{text-align:center;font-weight:700;font-size:11.5pt;margin-top:2mm}.ttl1.u{text-decoration:underline;margin:4mm 0 3mm}
+.ttl2{text-align:center;font-size:10.5pt;margin-bottom:7mm}
+.ttl3{text-align:center;font-weight:700;margin:6mm 0 3mm}
+.lbl{width:100%}.lbl td{vertical-align:top;padding:.4mm 0}.lbl .l1{width:22mm}.lbl .l2{width:5mm}
+.lbl.lbr{width:auto;margin:0 0 0 55%;font-size:10pt}.lbl.lbr td:first-child{padding-right:3mm}
+.ol{margin:0;padding-left:5mm;text-align:justify;list-style:decimal}.ol li{margin-bottom:.6mm}
+.just2{text-align:justify}
+.mt{margin-top:6mm}
+.ctr{text-align:center}
+.c-no{width:7mm;text-align:center}.c-ab{width:5mm;padding-right:0!important}.w40{width:40%}
+.paper .dt{width:100%}.paper .dt td{border:1px solid #000;padding:.6mm 1.6mm;vertical-align:top}
+.paper .dt.grid .th td{font-weight:700}
+.paper .dt.grid{width:88%}.paper .dt.grid td{padding:1mm 2mm}
+
+/* SPD */
+.spdt{font-size:10pt;line-height:1.2}.paper .spdt td{padding:.35mm 1.6mm}
+.spdt td.c-ab{border-right:none!important}
+.spdt td.c-ab+td{border-left:none!important}
+.crt{font-size:9pt;margin-top:.6mm}
+
+/* Lampiran */
+.lampt{font-size:10pt;line-height:1.2}.lampt>tbody>tr>td{padding:1mm 2mm}.lampt .tte-q{height:16mm}
+.lampt .c-rn{width:9mm;text-align:center}.lampt .c-h{width:48%}
+.paper .kv3{width:100%}.paper .kv3 td{padding:.2mm 0;border:none;vertical-align:top}.paper .kv3 td:first-child{width:28mm;white-space:nowrap}
+.lampt>tbody>tr{height:21mm}.lampt>tbody>tr:nth-last-child(-n+2){height:auto}.lampt>tbody>tr:first-child{height:auto}
+
+/* ---------- Tanda tangan ---------- */
+.sgw{display:flex;flex-direction:column;align-items:flex-start;margin:5mm 0 0 38%}
+.sgw.r{margin:3mm 0 0 40%}
+.iss{margin-bottom:4mm}.iss td{padding:.2mm 0}.iss td:first-child{width:30mm}
+.tte{border:1px solid #000;padding:2.5mm 4mm 3mm;min-width:84mm;font-family:Arial,Helvetica,sans-serif;font-size:10pt;line-height:1.3}
+.tte-l{text-decoration:underline;margin-bottom:1mm}
+.tte-j{font-weight:700}
+.tte-q{height:18mm;display:flex;align-items:center;justify-content:flex-start;padding-left:2mm;font:9pt/1 Arial,sans-serif;color:#000}
+.tte-n{font-weight:700;text-decoration:underline}
+.tte.nb{border:none;padding:1mm 0 0;min-width:0;font-family:var(--serif);font-size:inherit}
+.sgb{min-width:70mm;text-align:center}.sgb.nb{text-align:left}.sg-sp{height:22mm}
+.lampt .sgb.nb,.lampt .tte.nb{text-align:left}
+
+/* Catatan kaki TTE */
+.dnote{margin-top:3mm;padding-top:1mm;border-top:1.6px solid #2f6fb4;font:7.4pt/1.3 Arial,Helvetica,sans-serif}
+.dnote b{font-size:9pt}.dnote ul{margin:.5mm 0 0;padding-left:4mm;list-style:disc}
+
+/* ---------- Laporan (format Bandung) ---------- */
+.paper.lap{font:11pt/1.55 Arial,Helvetica,sans-serif}
 .lap h4{font-weight:700;margin:14px 0 4px;font-size:11pt}.lap h5{font-weight:700;margin:6px 0 2px 14px;font-size:11pt}
 .lap .lt{text-align:center;font-weight:700;margin:6px 0 10px}
 .lap .just{text-align:justify;white-space:pre-wrap;margin:2px 0 6px 28px;text-indent:1.2cm}
 .lap .lo,.lo{list-style:decimal;margin:2px 0 6px 50px;padding:0;text-align:justify}.lo.ml18{margin-left:18px}
 .lap .blank{height:44px;border-bottom:1px dotted #777;margin:2px 0 6px 28px}
-.lap .sig2{margin:18px 0 0 45%}.lap .sig2 td{padding:3px 8px 3px 0}
-.lap .gal img{display:block;width:88%;max-height:105mm;object-fit:contain;margin:14px auto;page-break-inside:avoid}
-/* Rekap cetak */
-.paper.rk{font:10pt/1.4 Arial,sans-serif}
+.lap .sig2{margin:18px 0 0 40%}.lap .sig2 table{margin-top:10mm;margin-left:-40%;width:140%}.lap .sig2 td{padding:0 8px 12mm 0;vertical-align:bottom}.lap .sig2 td:first-child{width:8mm}
+.lap .gal img{display:block;width:80%;height:110mm;object-fit:cover;margin:10mm auto 0;page-break-inside:avoid}
+
+/* ---------- Rekap cetak ---------- */
+.paper.rk{font:10pt/1.4 Arial,sans-serif}.d-h{text-align:center;margin:10px 0;font-size:13pt}
 .paper.rk .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
-.paper.rk .kpi{border:1px solid #999;padding:8px;border-radius:4px}.paper.rk .kpi-v{font-size:16pt;font-weight:bold}.paper.rk .kpi-l{font-size:9pt}
+.paper.rk .kpi{border:1px solid #999;padding:8px;border-radius:4px;background:#fff;box-shadow:none;backdrop-filter:none}.paper.rk .kpi-v{font-size:16pt;font-weight:bold}.paper.rk .kpi-l{font-size:9pt}
 .paper.rk .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.paper.rk .card{border:1px solid #999;padding:8px;border-radius:4px;break-inside:avoid;margin-top:8px}
+.paper.rk .card{border:1px solid #999;padding:8px;border-radius:4px;break-inside:avoid;margin-top:8px;background:#fff;box-shadow:none;backdrop-filter:none}
 .paper.rk .card-h{font-weight:bold;margin-bottom:4px}.paper.rk .card-t{display:block}
-.paper.rk .tbl{width:100%;font-size:9pt}.paper.rk .tbl th,.paper.rk .tbl td{border:1px solid #bbb;padding:2px 4px;text-align:left}
+.paper.rk .tbl{width:100%;font-size:9pt}.paper.rk .tbl th,.paper.rk .tbl td{border:1px solid #bbb;padding:2px 4px;text-align:left;background:#fff}
 .paper.rk .badge::before,.paper.rk .ci,.paper.rk .ico{display:none}
+
+/* Cetak: tinggi halaman tetap agar catatan TTE berada di bawah; nomor halaman untuk laporan */
+@media print{
+  #pa .paper.fx{min-height:268mm}
+  #pa.pn .paper{page:pn}
+  @page pn{@top-right{content:counter(page);font:9pt Arial,sans-serif;color:#444}}
+  @page pn:first{@top-right{content:none}}
+}

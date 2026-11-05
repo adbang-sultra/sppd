@@ -57,7 +57,7 @@ async function wrapDEK(dek, kek) { const iv = rnd(12); return {wiv:b64(iv), wk:b
 const unwrapDEK = (o, kek) => crypto.subtle.unwrapKey('raw', ub(o.wk), kek, {name:'AES-GCM', iv:ub(o.wiv)}, {name:'AES-GCM', length:256}, true, ['encrypt','decrypt']);
 
 /* ---------- Brankas & penyimpanan ---------- */
-const DEF = {emp:[], prog:[], sppd:[], rep:[], log:[], cfg:{prov:'', kab:'', kec:'', desa:'', instansi:'Nama Instansi', alamat:'', telp:'', pejabat:'', nip:'', jabatan:'Kepala Instansi', ta:String(new Date().getFullYear()), prefix:'SPPD', logo:''}};
+const DEF = {emp:[], prog:[], sppd:[], rep:[], log:[], cfg:{prov:'Sulawesi Tenggara', kab:'', kec:'', desa:'', instansi:'Sekretariat Daerah Provinsi Sulawesi Tenggara', alamat:'', telp:'', pejabat:'', nip:'', jabatan:'Sekretaris Daerah', ta:String(new Date().getFullYear()), prefix:'SPPD', logo:''}};
 const KEYS = Object.keys(DEF);
 const Vault = {key:null, xk:k => 'sppd_x_' + k, ready:() => !!localStorage.getItem('sppd_vault')};
 const D = {}; KEYS.forEach(k => D[k] = structuredClone(DEF[k]));

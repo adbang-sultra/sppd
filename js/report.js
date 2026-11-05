@@ -18,27 +18,8 @@ function dLap(s) {
   const keg = r.keg || `${dt(s.tb)} berangkat dari ${s.asal || '-'} ke ${s.tujuan}\n${dt(s.tk)} kembali ke ${s.asal || '-'}`;
   const hasil = r.hasil || [r.h1, r.h2, r.h3].filter(Boolean).join('\n'), Fo = (r.foto || []).map(okImg).filter(Boolean);
   return `<div class="paper lap">${kop()}${ttl}${h4('I. PENDAHULUAN')}${h5('A', 'Latar Belakang')}${pj(r.latar)}${h5('B', 'Dasar Hukum')}${ol(dasar)}${h5('C', 'Maksud dan Tujuan')}${pj(r.mt || s.maksud)}${h5('D', 'Waktu Pelaksanaan')}${pj(wkt)}${h4('II. KEGIATAN YANG DILAKSANAKAN')}${ol(keg)}${h4('III. HASIL YANG DICAPAI')}${ol(hasil)}${h4('IV. KESIMPULAN DAN SARAN')}${pj(r.kes)}${h4('V. REKOMENDASI')}${ol(r.tl)}${h4('VI. PENUTUP')}${pj(r.penutup || 'Demikian Laporan perjalanan dinas ini dibuat untuk dipergunakan sebagaimana mestinya.')}
-  <div class="sig2">${esc(c.kab || c.instansi)}, ${dts(r.tgl || today())}<br>Yang Melaporkan,<table>${P.map((p, i) => `<tr><td>${i + 1}.</td><td>${esc(p.nama)}</td><td>……………………</td></tr>`).join('')}</table></div></div>` + (Fo.length ? `<div class="paper lap">${ttl.replace('LAPORAN HASIL', 'DOKUMENTASI')}<div class="gal">${Fo.map(f => `<img src="${f}" alt="Dokumentasi">`).join('')}</div></div>` : '');
+  <div class="sig2">${esc(kc('kota'))}, ${dts(r.tgl || today())}<br>Yang Melaporkan,<table>${P.map((p, i) => `<tr><td>${i + 1}.</td><td>${esc(p.nama)}</td><td>……………………</td></tr>`).join('')}</table></div></div>` + Array.from({length:Math.ceil(Fo.length / 2)}, (_, i) => `<div class="paper lap">${i === 0 ? ttl.replace('LAPORAN HASIL', 'DOKUMENTASI') : ''}<div class="gal">${Fo.slice(i * 2, i * 2 + 2).map(f => `<img src="${f}" alt="Dokumentasi">`).join('')}</div></div>`).join('');
 }
-function dST(s) {
-  const c = D.cfg, P = petugas(s), n = lama(s.tb, s.tk), ds = String(s.dasar || '').split(/;|\n/).map(x => x.trim()).filter(Boolean);
-  return `<div class="paper lap">${kop()}<h3 class="d-h2"><u><b>SURAT TUGAS</b></u></h3><div class="d-no">NOMOR : ${esc(s.stNo || '............')}</div>
-  <table class="w100"><tr><td class="w60 top">Dasar :</td><td>${ds.length ? `<ol class="lo ml18">${ds.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : '-'}</td></tr></table>
-  <div class="d-mg"><b>MENUGASKAN :</b></div><table class="dt"><tr><td class="c-n6">No.</td><td>Nama/NIP</td><td>Jabatan</td></tr>${P.map((p, i) => `<tr><td>${i + 1}</td><td>${esc(p.nama)}${p.nip ? ' NIP. ' + esc(p.nip) : ''}</td><td>${esc(p.jabatan)}</td></tr>`).join('')}</table>
-  <p class="d-p">Untuk : ${esc(s.maksud)}, selama ${n} hari sejak tanggal ${dts(s.tb)} s/d ${dts(s.tk)}.</p><p>Demikian Surat Tugas ini diberikan untuk dilaksanakan dengan penuh rasa tanggung jawab.</p>
-  <div class="d-iss">Dikeluarkan di : ${esc(c.kab || c.instansi)}<br>Pada tanggal : ${dts(s.stTgl || s.tgl)}</div>${sig(s.pejabat || c.jabatan, c.pejabat, c.nip)}</div>`;
-}
-const docs = (s, v) => v === 'st' ? dST(s) : v === 'sppd' ? dSPPD(s) : v === 'lamp' ? dLamp(s) : v === 'lap' ? dLap(s) : dST(s) + dSPPD(s) + dLamp(s) + dLap(s);
-
-/* Ekspor Word (.doc HTML) — gaya diambil dari css/doc.css agar sama dengan cetak */
-let DOCCSS = '';
-async function expWord(id) {
-  const s = D.sppd.find(x => x.id === id); if (!s) return;
-  if (!DOCCSS) { try { DOCCSS = (await (await fetch('css/doc.css', {cache:'force-cache'})).text()).replace(/<\/?style/gi, ''); } catch { DOCCSS = 'body{font:11pt Arial}table{border-collapse:collapse}.dt td{border:1px solid #000;padding:3px 6px}'; } }
-  dl('Laporan_' + String(s.no).replace(/[^\w-]/g, '_') + '.doc', '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word"><head><meta charset="utf-8"><style>' + DOCCSS + '.paper{width:auto;min-height:0;box-shadow:none;padding:0;zoom:1}</style></head><body>' + dLap(s) + '</body></html>', 'application/msword');
-  log('Unduh laporan Word ' + s.no);
-}
-act('expWord', el => expWord(el.dataset.id));
 
 /* Foto dokumentasi: dikompres & di-encode ulang (metadata/EXIF terbuang) */
 onCh('addFoto', async el => {

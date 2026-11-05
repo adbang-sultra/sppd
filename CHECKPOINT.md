@@ -5,4 +5,5 @@
 - [x] Logo, latar, ikon, efek, warna, mode dapat diganti kapan saja (+ ekspor/impor tema)
 - [x] Keamanan: enkripsi AES-GCM, ACL terenkripsi, CSP tanpa unsafe-inline, Tailwind/font lokal, sesi aman, backup terenkripsi, sanitasi
 - [x] Diuji: alur lengkap (desktop/iPhone/Android/iPad), migrasi data lama, XSS, manipulasi peran, lockout
+- [x] Kop surat model Executive Summary, SPT/SPD/Lampiran model contoh TTE (${ttd}), Laporan model Bandung, ekspor .docx asli
 - [ ] Uji di perangkat nyata & deploy Vercel

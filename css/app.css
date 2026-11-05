@@ -326,7 +326,7 @@ input[type=date].in::-webkit-calendar-picker-indicator{filter:invert(var(--inv,1
 .paperw{overflow-x:auto;padding:.2rem 0 1rem}
 #pa{display:none}
 @media print{
-  @page{size:A4;margin:12mm}
+  @page{size:A4;margin:14mm 18mm 12mm}
   html,body{height:auto!important;overflow:visible!important;background:#fff!important}
   body>*:not(#pa){display:none!important}
   #pa{display:block}
@@ -336,3 +336,7 @@ input[type=date].in::-webkit-calendar-picker-indicator{filter:invert(var(--inv,1
 }
 /* Mobile minimalis: kolom sekunder disembunyikan pada kartu (lengkapnya lewat tombol Detail) */
 @media (max-width:767px){.tblw:not(.keep) .tbl td:is([data-label=JK],[data-label=Telp],[data-label=Maksud],[data-label=Kembali],[data-label=Kode],[data-label=Subkegiatan],[data-label="Sumber Dana"]){display:none}}
+
+/* Pratinjau kop di Pengaturan */
+.kopprev{border-radius:calc(var(--rad) * .6);overflow:hidden;background:#fff;padding:.2rem 0}
+.kopprev .paper.mini{min-height:0;padding:8mm 18mm 1mm;margin:0 auto;box-shadow:none;zoom:var(--pz,1)}
