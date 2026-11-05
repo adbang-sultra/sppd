@@ -58,6 +58,8 @@ const ICONS = {
   zap:'<path d="M13 2 4 14h7l-1 8 9-12h-7Z"/>',
   dots:'<circle cx="5" cy="12" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="19" cy="12" r="1.3"/>',
   word:'<path d="M14 3H6v18h12V7Z"/><path d="M14 3v4h4M8.5 11l1.2 6 1.6-4.5 1.6 4.5 1.2-6"/>',
+  cloud:'<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4.5 4.5 0 0 1-.5 9.5Z"/><path d="m9.5 13.5 2 2 3.5-3.5"/>',
+  cloudOff:'<path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 18 8.5a4.5 4.5 0 0 1-.5 9.5Z"/><path d="M12 10.5v3M12 16v.2"/>',
   csv:'<path d="M14 3H6v18h12V7Z"/><path d="M14 3v4h4M8 12h8M8 15h8M8 18h8M11 12v6"/>'
 };
 const I = (n, cls = '') => `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true" focusable="false">${ICONS[n] || ICONS.dots}</svg>`;

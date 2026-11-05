@@ -13,6 +13,8 @@ Harus dibuka lewat **HTTPS** (atau localhost) karena memakai Web Crypto.
 | `css/tw.css` | Tailwind hasil kompilasi lokal (bukan CDN) |
 | `js/config.js` | **tampilan bawaan & preset warna** (ubah di sini bila perlu) |
 | `js/core.js` | utilitas, enkripsi, penyimpanan, event delegation |
+| `js/cloud.js` | sinkron cloud Supabase (enkripsi ujung-ke-ujung, cache IndexedDB, antrean offline) |
+| `supabase/schema-sppd.sql` | skema & fungsi server (jalankan sekali di Supabase) |
 | `js/icons.js` | set ikon SVG (tambah ikon: `ICONS.nama='<path …/>'`) |
 | `js/fx.js` | efek latar interaktif |
 | `js/app.js` · `js/report.js` | halaman & laporan |
@@ -20,6 +22,28 @@ Harus dibuka lewat **HTTPS** (atau localhost) karena memakai Web Crypto.
 | `js/ui.js` | menu Tampilan & Tema · `js/auth.js` login, peran, sesi |
 | `assets/` | `logo.svg`, `bg.svg`, font |
 | `contoh-data/` | CSV contoh pegawai — **tidak ikut diunggah ke Vercel** (`.vercelignore`) |
+
+## Penyimpanan Cloud — data bisa dibuka lintas browser & perangkat
+Tanpa langkah ini aplikasi berjalan **mode lokal** (data hanya di browser itu). Aktifkan sekali:
+
+1. **Supabase** → buka project (boleh project yang sudah ada; tabel & fungsi memakai awalan `sppd_` sehingga tidak bentrok dengan aplikasi lain).
+2. Buka `supabase/schema-sppd.sql`, **ganti** `GANTI-DENGAN-KODE-SETUP-RAHASIA` (baris paling bawah) dengan kode rahasia Anda sendiri (min. 16 karakter) → SQL Editor → *Run*.
+3. Supabase → *Project Settings → API*: salin **Project URL** dan kunci **anon public** ke `js/config.js` bagian `SYNC`:
+   ```js
+   const SYNC = { url: 'https://xxxx.supabase.co', anonKey: 'eyJhbGciOi...' };
+   ```
+4. Deploy ulang ke Vercel. Buka aplikasi → layar **Buat Administrator** meminta *Kode setup* (langkah 2).
+   - Jika browser itu sudah berisi data lama (mode lokal), pakai **username & kata sandi admin lama** — seluruh data otomatis diunggah.
+5. Tambahkan pengguna lain di **Pengguna & Peran**. Akun lama bertanda "Perlu atur ulang sandi" → klik Ubah, isi kata sandi baru.
+
+Selesai — masuk dari Chrome, Edge, Firefox, Safari, HP, atau komputer lain akan menampilkan data yang sama. Ikon awan di bilah atas menunjukkan status (hijau = tersimpan, kuning = menyimpan, merah = offline/gagal; perubahan saat offline dikirim otomatis saat online kembali).
+
+**Keamanan mode cloud**
+- *Zero-knowledge*: tiap item dienkripsi AES-256-GCM di browser sebelum dikirim — admin Supabase pun hanya melihat teks acak.
+- Kata sandi tidak pernah dikirim; server hanya menyimpan hash kunci otentikasi (turunan PBKDF2 600.000×).
+- Login, sesi (20 menit tidak aktif / maks. 10 jam), **lockout bertahap** dan **hak akses per peran** diperiksa di server — tidak bisa diakali dari browser.
+- Tabel tertutup (RLS tanpa policy, hak `anon` dicabut); akses hanya lewat fungsi `sppd_*`. Jejak login & perubahan pengguna tercatat di tabel `sppd_audit`.
+- Simpan **kode setup** & minimal satu akun admin dengan baik: tanpa kata sandi, data tidak dapat dibuka oleh siapa pun (termasuk pengembang).
 
 ## Dokumen cetak & Word
 - **Kop surat** model Executive Summary Setda Prov. Sultra (lambang kiri, 3 baris, garis tebal). Ubah teks/logo di **Pengaturan Instansi**, atau pilih **Gambar kop jadi** untuk memakai gambar kop resmi utuh.
@@ -44,7 +68,7 @@ Tema bisa diekspor/impor sebagai file JSON. Alternatif: ganti file `assets/logo.
 - **Masukan**: semua data dibersihkan saat dimuat/impor/restore (anti XSS & prototype pollution), gambar diperiksa magic bytes lalu di-encode ulang (metadata/EXIF terbuang), anti CSV injection.
 - **Backup terenkripsi** dengan kata sandi backup; restore memerlukan konfirmasi kata sandi admin.
 
-**Batas (jujur):** ini aplikasi tanpa server — data hanya ada di browser perangkat itu. Pengguna yang sah dan sedang login (memegang kunci) secara teknis tetap bisa mengutak-atik lewat DevTools. Untuk multi-perangkat & kontrol penuh di server, pindahkan ke backend (mis. Supabase Auth + RLS).
+**Batas (jujur):** pada mode lokal data hanya ada di browser itu — aktifkan Penyimpanan Cloud. Pada mode cloud, hak akses ditegakkan server; namun pengguna sah yang sedang login tetap memegang kunci data sesuai perannya (wajar untuk enkripsi ujung-ke-ujung).
 
 ## Pembaruan dari versi lama
 Data lama otomatis dienkripsi saat **Administrator masuk pertama kali**. Akun Operator/Pembaca lama tampil "Perlu atur ulang sandi" → Admin buka **Pengguna & Peran → Ubah**, isi kata sandi baru.

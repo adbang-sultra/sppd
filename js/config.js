@@ -36,3 +36,17 @@ const PRESETS = {
   grafit:   ['Grafit',       '#64748b', '#94a3b8', '#0b0f15'],
   emas:     ['Emas Anoa',    '#eab308', '#14b8a6', '#14110a']
 };
+
+/* ============================================================
+   PENYIMPANAN CLOUD (lintas peramban & perangkat)
+   Isi setelah menjalankan supabase/schema-sppd.sql di project Supabase Anda.
+   Ambil dari Supabase → Project Settings → API:
+     url     : Project URL, mis. 'https://abcdxyz.supabase.co'
+     anonKey : kunci "anon public" (aman ditaruh di sini — data tetap terenkripsi
+               dan semua akses diperiksa oleh fungsi di server)
+   Kosongkan keduanya untuk mode lokal (data hanya di browser ini).
+   ============================================================ */
+const SYNC = {
+  url: '',
+  anonKey: ''
+};

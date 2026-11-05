@@ -6,4 +6,6 @@
 - [x] Keamanan: enkripsi AES-GCM, ACL terenkripsi, CSP tanpa unsafe-inline, Tailwind/font lokal, sesi aman, backup terenkripsi, sanitasi
 - [x] Diuji: alur lengkap (desktop/iPhone/Android/iPad), migrasi data lama, XSS, manipulasi peran, lockout
 - [x] Kop surat model Executive Summary, SPT/SPD/Lampiran model contoh TTE (${ttd}), Laporan model Bandung, ekspor .docx asli
+- [x] v3.0 Penyimpanan cloud Supabase (zero-knowledge, sinkron per item, lockout & peran di server, unggah data lokal) — diuji dengan Postgres 16 + tiruan PostgREST
+- [ ] Isi SYNC di js/config.js, jalankan SQL di Supabase asli
 - [ ] Uji di perangkat nyata & deploy Vercel

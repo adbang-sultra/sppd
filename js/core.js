@@ -65,6 +65,7 @@ const chain = {};
 let BC = null; try { BC = new BroadcastChannel('sppd'); } catch {}
 function persist(k) {
   if (!Vault.key) return Promise.resolve();
+  if (Cloud.on) { if (k !== 'log') Cloud.queue(k); return Promise.resolve(); }   /* mode cloud: dikirim ke server */
   const key = Vault.key;
   chain[k] = (chain[k] || Promise.resolve()).then(async () => {
     localStorage.setItem(Vault.xk(k), await seal(key, D[k], k));
@@ -72,7 +73,7 @@ function persist(k) {
   }).catch(e => toast('Gagal menyimpan: ' + (e?.name === 'QuotaExceededError' ? 'penyimpanan browser penuh (kurangi foto/gambar latar)' : (e?.message || e)), 'err'));
   return chain[k];
 }
-const flush = () => Promise.all(Object.values(chain));
+const flush = () => Promise.all([...Object.values(chain), Cloud.on ? Cloud.flush() : null]);
 const Store = {
   async read(k) { const s = localStorage.getItem(Vault.xk(k)); return s ? unseal(Vault.key, s, k) : null; },
   async loadAll() { for (const k of KEYS) { const v = await this.read(k); D[k] = v == null ? structuredClone(DEF[k]) : CLEAN[k](v); } },
@@ -84,6 +85,7 @@ const save = k => Store.set(k, D[k]);
 BC && (BC.onmessage = async e => {
   const m = e.data || {};
   if (m.t === 'logout' && Auth.logged()) Auth.logout('Anda keluar di tab lain', true);
+  if (m.t === 'data' && Cloud.on && Vault.key) { Cloud.pull().then(ch => { if (ch && !$('#mod').innerHTML) render(); }).catch(() => {}); return; }
   if (m.t === 'data' && Vault.key && KEYS.includes(m.k)) { try { const v = await Store.read(m.k); if (v) { D[m.k] = CLEAN[m.k](v); if (!$('#mod').innerHTML) render(); } } catch {} }
 });
 
