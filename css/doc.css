@@ -1,0 +1,30 @@
+/* Dokumen cetak (SPD, Lampiran, Surat Tugas, Laporan). Juga disematkan saat ekspor Word. */
+.paper{background:#fff;width:210mm;min-height:297mm;padding:15mm;margin:0 auto 16px;font:11pt/1.4 'Times New Roman',serif;box-sizing:border-box;color:#000;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);zoom:var(--pz,1);border-radius:2px}
+.paper *{color:#000}
+.paper table{border-collapse:collapse}
+.paper table.dt{width:100%}.paper .dt td{border:1px solid #000;padding:3px 6px;vertical-align:top}
+.kop{display:flex;align-items:center;gap:12px;border-bottom:3px double #000;padding-bottom:8px;margin-bottom:12px;text-align:center}
+.kop-l{height:70px;width:auto}.kop-t{flex:1}.kop-i{font-weight:bold;font-size:15pt}.kop-a{font-size:9pt}
+.sig{width:55%;margin-left:45%;text-align:center;margin-top:20px}
+.c-no{width:7%;text-align:center}.c-lb{width:38%}.c-n6{width:6%}.c-47{width:47%}
+.w100{width:100%}.w36{width:36%}.w60{width:60px}.w130{width:130px}.top{vertical-align:top}.ctr{text-align:center}
+.d-r{text-align:right;font-size:10pt}.d-h{text-align:center;margin:10px 0;font-size:13pt}.d-h2{text-align:center;margin:8px 0 0;font-size:13pt}.d-no{text-align:center;margin-bottom:12px}
+.d-iss{margin:14px 0 0 45%}.d-mg{margin:10px 0}.d-p{margin:12px 0}
+.lamp-h{margin:0 0 12px 18%}
+.paper.lap{font:11pt/1.5 Arial,Helvetica,sans-serif}
+.lap h4{font-weight:700;margin:14px 0 4px;font-size:11pt}.lap h5{font-weight:700;margin:6px 0 2px 14px;font-size:11pt}
+.lap .lt{text-align:center;font-weight:700;margin:6px 0 10px}
+.lap .just{text-align:justify;white-space:pre-wrap;margin:2px 0 6px 28px;text-indent:1.2cm}
+.lap .lo,.lo{list-style:decimal;margin:2px 0 6px 50px;padding:0;text-align:justify}.lo.ml18{margin-left:18px}
+.lap .blank{height:44px;border-bottom:1px dotted #777;margin:2px 0 6px 28px}
+.lap .sig2{margin:18px 0 0 45%}.lap .sig2 td{padding:3px 8px 3px 0}
+.lap .gal img{display:block;width:88%;max-height:105mm;object-fit:contain;margin:14px auto;page-break-inside:avoid}
+/* Rekap cetak */
+.paper.rk{font:10pt/1.4 Arial,sans-serif}
+.paper.rk .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
+.paper.rk .kpi{border:1px solid #999;padding:8px;border-radius:4px}.paper.rk .kpi-v{font-size:16pt;font-weight:bold}.paper.rk .kpi-l{font-size:9pt}
+.paper.rk .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.paper.rk .card{border:1px solid #999;padding:8px;border-radius:4px;break-inside:avoid;margin-top:8px}
+.paper.rk .card-h{font-weight:bold;margin-bottom:4px}.paper.rk .card-t{display:block}
+.paper.rk .tbl{width:100%;font-size:9pt}.paper.rk .tbl th,.paper.rk .tbl td{border:1px solid #bbb;padding:2px 4px;text-align:left}
+.paper.rk .badge::before,.paper.rk .ci,.paper.rk .ico{display:none}

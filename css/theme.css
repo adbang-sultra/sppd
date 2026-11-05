@@ -1,0 +1,52 @@
+/* ============================================================
+   TEMA — variabel warna & ukuran. Nilai --ac, --ac2, --bg0, --dim, --blur,
+   --scale, --rad diatur otomatis dari menu "Tampilan & Tema".
+   ============================================================ */
+@font-face{font-family:'Jakarta';font-style:normal;font-display:swap;font-weight:200 800;src:url(../assets/fonts/pjs-latin.woff2) format('woff2');unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+@font-face{font-family:'Jakarta';font-style:normal;font-display:swap;font-weight:200 800;src:url(../assets/fonts/pjs-latin-ext.woff2) format('woff2');unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
+
+:root{
+  --ac:#14b8a6; --ac2:#6366f1; --bg0:#06121f; --dim:.35; --blur:16px; --scale:1; --rad:18px;
+  --grad:linear-gradient(135deg,var(--ac),var(--ac2));
+  --ok:#10b981; --warn:#f59e0b; --bad:#ef4444;
+  --side-w:16.5rem; --side-mini:4.6rem; --rp-w:19rem; --top-h:4rem; --bn-h:4.1rem;
+  --font:'Jakarta',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+/* Mode gelap (bawaan) */
+:root,:root[data-mode=dark]{
+  color-scheme:dark;
+  --tx:#e6edf5; --hd:#ffffff; --mu:#93a3b8; --mu2:#64748b;
+  --sf:rgba(13,22,38,.62); --sf2:rgba(20,31,52,.74); --sf3:rgba(255,255,255,.05);
+  --bd:rgba(255,255,255,.09); --bd2:rgba(255,255,255,.16);
+  --in:rgba(3,8,20,.5); --in-bd:rgba(255,255,255,.12);
+  --side:rgba(6,12,24,.72); --sh:0 18px 40px -18px rgba(0,0,0,.65);
+  --tint:rgba(2,6,16,var(--dim));
+}
+:root[data-mode=light]{
+  color-scheme:light;
+  --tx:#0f1b2d; --hd:#0b1424; --mu:#5b6b82; --mu2:#8a98ab;
+  --sf:rgba(255,255,255,.74); --sf2:rgba(255,255,255,.9); --sf3:rgba(15,23,42,.04);
+  --bd:rgba(15,23,42,.08); --bd2:rgba(15,23,42,.16);
+  --in:rgba(255,255,255,.95); --in-bd:rgba(15,23,42,.14);
+  --side:rgba(255,255,255,.72); --sh:0 16px 36px -20px rgba(15,23,42,.35);
+  --tint:rgba(241,245,249,calc(.45 + var(--dim) * .6));
+}
+
+/* Ukuran proporsional: font dasar mengikuti lebar layar (dikunci min/maks),
+   semua ukuran memakai rem → tata letak tetap sama di semua perangkat. */
+html{font-size:calc(clamp(13px,.42vw + 10.6px,17.5px) * var(--scale));-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html,body{height:100%;width:100%;margin:0}
+body{font-family:var(--font);color:var(--tx);background:var(--bg0);overflow:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-feature-settings:'ss01','cv11'}
+[hidden]{display:none!important}
+
+/* Latar */
+#bgwrap{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:var(--bg0)}
+#bgimg{position:absolute;inset:-3%;background:center/cover no-repeat;will-change:transform;transition:background-image .5s}
+#bgtint{position:absolute;inset:0;background:
+  radial-gradient(60rem 40rem at 12% 8%,color-mix(in srgb,var(--ac) 28%,transparent),transparent 60%),
+  radial-gradient(50rem 36rem at 92% 88%,color-mix(in srgb,var(--ac2) 26%,transparent),transparent 60%),
+  var(--tint)}
+#fx{position:absolute;inset:0;width:100%;height:100%}
+:root[data-mode=light] #fx{opacity:.9}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;transition-duration:.001ms!important}}
