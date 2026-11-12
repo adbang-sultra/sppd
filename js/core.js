@@ -15,6 +15,7 @@ const pad = n => String(n).padStart(2, '0');
 const today = () => { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); };
 const okDate = s => /^\d{4}-\d{2}-\d{2}$/.test(s || '') ? s : '';
 const dt = s => s ? new Date(s + 'T00:00:00').toLocaleDateString('id-ID', {weekday:'long', day:'numeric', month:'long', year:'numeric'}) : '';
+const rupiah = n => 'Rp ' + Math.round(+n || 0).toLocaleString('id-ID');
 const dts = s => s ? new Date(s + 'T00:00:00').toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'}) : '';
 const lama = (a, b) => a && b ? Math.round((new Date(b) - new Date(a)) / 864e5) + 1 : 0;
 const clamp = (v, a, b, d) => { v = Number(v); return Number.isFinite(v) ? Math.min(b, Math.max(a, v)) : d; };
@@ -61,32 +62,160 @@ const DEF = {emp:[], prog:[], sppd:[], rep:[], log:[], cfg:{prov:'Sulawesi Tengg
 const KEYS = Object.keys(DEF);
 const Vault = {key:null, xk:k => 'sppd_x_' + k, ready:() => !!localStorage.getItem('sppd_vault')};
 const D = {}; KEYS.forEach(k => D[k] = structuredClone(DEF[k]));
-const chain = {};
 let BC = null; try { BC = new BroadcastChannel('sppd'); } catch {}
+
+/* ---------- Model baris ----------
+   Data disimpan (lokal maupun cloud) sebagai BARIS terenkripsi, satu baris per item:
+     emp:<id>  prog:<id>  sppd:<id>  rep:<id>  cfg  acl  log
+     ph:<hash>   foto laporan          (dirujuk dari rep.foto)
+     img:<hash>  logo/kop/latar        (dirujuk dari cfg)
+   Gambar dipisah dari induknya, jadi mengubah teks laporan tidak menyimpan/mengunggah ulang fotonya. */
+const PH = new Map(), PHK = new Map(), LEGREP = new Map();
+const REFRE = /^(ph|img):[a-f0-9]{32}$/, isBlob = k => k.startsWith('ph:') || k.startsWith('img:');
+const owns = (col, k) => k === col || k.startsWith(col + ':') || (col === 'rep' && k.startsWith('ph:')) || (col === 'cfg' && k.startsWith('img:'));
+const hx = buf => Array.from(new Uint8Array(buf), b => b.toString(16).padStart(2, '0')).join('');
+const sha256hex = async s => hx(await crypto.subtle.digest('SHA-256', TE.encode(s)));
+async function blobKey(col, owner, s) {
+  let m = PHK.get(owner); if (!m) PHK.set(owner, m = new Map());
+  let k = m.get(s); if (!k) { k = col + ':' + (await sha256hex(owner + '|' + s)).slice(0, 32); m.set(s, k); }
+  PH.set(k, s); return k;
+}
+const CIMG = ['logo', 'kopImg'], UIMG = ['logo', 'bg'];
+const ITEMS = ['emp', 'prog', 'sppd', 'rep'];
+/* Urutan item: tiap item baru diberi cap waktu 'ts' yang selalu naik → urutan "terbaru" tetap sama setelah dimuat
+   ulang maupun di perangkat lain (penyimpanan per baris tidak menyimpan urutan larik). */
+let TSN = 0; const nextTs = () => (TSN = Math.max(TSN + 1, Date.now()));
+const sortD = c => { if (ITEMS.includes(c)) D[c].sort((a, b) => (a.ts || 0) - (b.ts || 0)); };
+const stampOrder = a => { (a || []).forEach((it, i) => { if (!it.ts) it.ts = i + 1; }); return a; };
+const phk = (owner, s, k) => { let m = PHK.get(owner); if (!m) PHK.set(owner, m = new Map()); m.set(s, k); };
+/* Isi satu koleksi sebagai baris: Map(kunci → nilai). Gambar didahulukan dari induknya. */
+async function rowsOf(col) {
+  const m = new Map();
+  if (col === 'acl') { m.set('acl', ACL); return m; }
+  if (col === 'log') { m.set('log', D.log); return m; }
+  if (col === 'cfg') {
+    const c = {...D.cfg}; if (c.ui) c.ui = {...c.ui};
+    for (const [o, fs] of [[c, CIMG], [c.ui, UIMG]]) if (o) for (const f of fs) if (okImg(o[f])) { const k = await blobKey('img', 'cfg', o[f]); m.set(k, o[f]); o[f] = k; }
+    m.set('cfg', c); return m;
+  }
+  for (const it of D[col]) {
+    if (!okId(it.id)) it.id = uid();
+    /* laporan format lama (foto masih menyatu, dibuat v1.1): dibiarkan apa adanya sampai laporan itu sendiri diubah */
+    if (col === 'rep' && LEGREP.has(it.id)) { if (LEGREP.get(it.id) === JSON.stringify(it)) { m.set('rep:' + it.id, it); continue; } LEGREP.delete(it.id); }
+    if (col === 'rep') { const refs = []; for (const f of it.foto || []) { const k = await blobKey('ph', it.id, f); m.set(k, f); refs.push(k); } m.set('rep:' + it.id, {...it, foto:refs}); }
+    else m.set(col + ':' + it.id, it);
+  }
+  return m;
+}
+/* Bentuk baku sebuah baris (sudah dibersihkan; gambar tetap berupa rujukan) */
+function canonRow(k, v) {
+  const col = k.split(':')[0];
+  if (col === 'acl') return cleanACL(v);
+  if (col === 'log') return CLEAN.log(v);
+  if (col === 'cfg') { v = v && typeof v === 'object' ? v : {}; const c = CLEAN.cfg(v); CIMG.forEach(f => { if (REFRE.test(v[f])) c[f] = v[f]; }); if (c.ui && v.ui) UIMG.forEach(f => { if (REFRE.test(v.ui[f])) c.ui[f] = v.ui[f]; }); return c; }
+  if (!v || typeof v !== 'object' || !own(CLEAN, col)) return null;
+  const c = CLEAN[col]([v])[0]; if (!c) return null; c.id = k.slice(col.length + 1);
+  if (col === 'rep') c.foto = (Array.isArray(v.foto) ? v.foto : []).filter(x => typeof x === 'string' && (REFRE.test(x) || okImg(x))).slice(0, 6);
+  return c;
+}
+const hyd = (v, owner) => { if (typeof v !== 'string' || !REFRE.test(v)) return v; const s = PH.get(v) || ''; if (s) phk(owner, s, v); return s; };
+/* Terapkan satu baris ke data di memori. v === undefined → baris dihapus. */
+function absorb(k, v) {
+  const col = k.split(':')[0], id = k.slice(col.length + 1);
+  if (isBlob(k)) { if (v === undefined) PH.delete(k); else if (okImg(v)) PH.set(k, v); return; }
+  if (v === undefined) { LEGREP.delete(id); if (id && Array.isArray(D[col])) { const i = D[col].findIndex(x => x.id === id); if (i >= 0) D[col].splice(i, 1); } return; }
+  const c = canonRow(k, v); if (!c) return;
+  if (col === 'acl') { ACL = c; return; }
+  if (col === 'log') { D.log = c; return; }
+  if (col === 'cfg') { CIMG.forEach(f => c[f] = hyd(c[f], 'cfg')); if (c.ui) UIMG.forEach(f => { if (own(c.ui, f)) { const h = hyd(c.ui[f], 'cfg'); if (h) c.ui[f] = h; else delete c.ui[f]; } }); D.cfg = c; return; }
+  if (col === 'rep') c.foto = c.foto.map(f => hyd(f, id)).filter(Boolean);
+  const i = D[col].findIndex(x => x.id === id); if (i >= 0) D[col][i] = c; else D[col].push(c);
+  if (col === 'rep') { if (Array.isArray(v.foto) && v.foto.some(okImg)) LEGREP.set(id, JSON.stringify(c)); else LEGREP.delete(id); }
+}
+/* Gabung 3 arah per kolom: dasar (versi terakhir yang sama-sama dilihat), lokal, server.
+   Kolom yang hanya diubah satu pihak digabung; bila dua pihak mengubah kolom yang sama, isian lokal dipakai & dilaporkan. */
+function merge3(base, loc, rem) {
+  const S = JSON.stringify, out = {...rem}, clash = [];
+  for (const f of new Set([...Object.keys(loc), ...Object.keys(rem)])) {
+    const l = S(loc[f]), r = S(rem[f]); if (l === r) continue;
+    const b = base ? S(base[f]) : undefined;
+    if (base && l === b) continue;
+    if (loc[f] === undefined) delete out[f]; else out[f] = loc[f];
+    if (!base || r !== b) clash.push(f);
+  }
+  return {val:out, clash};
+}
+function mergeList(base, loc, rem) {
+  const ix = a => new Map((a || []).map(x => [x.id, x])), B = ix(base), L = ix(loc), R = ix(rem), out = [], clash = [];
+  for (const id of new Set([...R.keys(), ...L.keys()])) {
+    const b = B.get(id), l = L.get(id), r = R.get(id);
+    if (l && r) { const m = merge3(b, l, r); out.push(m.val); if (m.clash.length) clash.push(id); }
+    else if (!b) out.push(l || r);
+  }
+  return {val:out, clash};
+}
+
+/* ---------- Penyimpanan lokal: IndexedDB, satu baris per item (tidak lagi dibatasi ±5 MB localStorage) ---------- */
+const LDB = (() => {
+  const op = (mode, fn) => new Promise((ok, no) => {
+    const q = indexedDB.open('sppd-local', 1); q.onupgradeneeded = () => q.result.createObjectStore('rows'); q.onerror = () => no(q.error);
+    q.onsuccess = () => { const d = q.result; let out; const tx = d.transaction('rows', mode); try { out = fn(tx.objectStore('rows')); } catch (e) { d.close(); return no(e); } tx.oncomplete = () => { d.close(); ok(out); }; tx.onerror = tx.onabort = () => { d.close(); no(tx.error); }; };
+  });
+  return {
+    /* semua baris, atau hanya rentang kunci tertentu: [[awal, akhir], …] */
+    all: rg => op('readonly', s => (rg || [null]).map(x => { const q = x ? IDBKeyRange.bound(x[0], x[1]) : undefined; return {k:s.getAllKeys(q), v:s.getAll(q)}; })).then(a => a.flatMap(r => r.k.result.map((k, i) => [k, r.v.result[i]]))),
+    batch: ops => op('readwrite', s => { ops.forEach(([k, v]) => v == null ? s.delete(k) : s.put(v, k)); })
+  };
+})();
+const lsnap = new Map(); let chainP = Promise.resolve();
+const saveErr = e => toast('Gagal menyimpan: ' + (e?.name === 'QuotaExceededError' ? 'penyimpanan perangkat penuh (hapus foto/laporan lama atau aktifkan Penyimpanan Cloud)' : (e?.message || e)), 'err');
+async function persistLocal(k, key) {
+  const m = await rowsOf(k), ops = [], set = [];
+  for (const [rk, v] of m) { const j = isBlob(rk) ? '1' : JSON.stringify(v); if (lsnap.get(rk) !== j) { ops.push([rk, await seal(key, v, rk)]); set.push([rk, j]); } }
+  for (const rk of lsnap.keys()) if (owns(k, rk) && !m.has(rk)) { ops.push([rk, null]); set.push([rk]); }
+  if (ops.length) await LDB.batch(ops);
+  set.forEach(([rk, j]) => j === undefined ? lsnap.delete(rk) : lsnap.set(rk, j));
+}
 function persist(k) {
   if (!Vault.key) return Promise.resolve();
   if (Cloud.on) { if (k !== 'log') Cloud.queue(k); return Promise.resolve(); }   /* mode cloud: dikirim ke server */
   const key = Vault.key;
-  chain[k] = (chain[k] || Promise.resolve()).then(async () => {
-    localStorage.setItem(Vault.xk(k), await seal(key, D[k], k));
-    BC?.postMessage({t:'data', k});
-  }).catch(e => toast('Gagal menyimpan: ' + (e?.name === 'QuotaExceededError' ? 'penyimpanan browser penuh (kurangi foto/gambar latar)' : (e?.message || e)), 'err'));
-  return chain[k];
+  return chainP = chainP.then(() => persistLocal(k, key)).then(() => { BC?.postMessage({t:'data', k}); }).catch(saveErr);
 }
-const flush = () => Promise.all([...Object.values(chain), Cloud.on ? Cloud.flush() : null]);
+const flush = () => Promise.all([chainP, Cloud.on ? Cloud.flush() : null]);
+/* Muat baris terenkripsi ke memori untuk koleksi 'cols'. Dekripsi dulu semuanya, baru isi memori ditukar
+   sekaligus — tidak ada saat di mana data tampak kosong/separuh. */
+async function loadFrom(rows, cols) {
+  const dec = [];
+  for (const [k, s] of rows.sort((a, b) => isBlob(b[0]) - isBlob(a[0]))) { try { dec.push([k, await unseal(Vault.key, s, k)]); } catch { console.warn('Baris tidak terbaca:', k); } }
+  cols.forEach(c => { D[c] = structuredClone(DEF[c]); });
+  for (const k of [...lsnap.keys()]) if (cols.some(c => owns(c, k))) lsnap.delete(k);
+  for (const k of [...PH.keys()]) if ((cols.includes('rep') && k.startsWith('ph:')) || (cols.includes('cfg') && k.startsWith('img:'))) PH.delete(k);
+  dec.forEach(([k, v]) => { absorb(k, v); lsnap.set(k, '?'); }); cols.forEach(sortD);
+  for (const c of cols) { const m = await rowsOf(c); for (const [rk, v] of m) if (lsnap.has(rk)) lsnap.set(rk, isBlob(rk) ? '1' : JSON.stringify(v)); }
+}
 const Store = {
-  async read(k) { const s = localStorage.getItem(Vault.xk(k)); return s ? unseal(Vault.key, s, k) : null; },
-  async loadAll() { for (const k of KEYS) { const v = await this.read(k); D[k] = v == null ? structuredClone(DEF[k]) : CLEAN[k](v); } },
+  async loadAll() {
+    PH.clear(); PHK.clear(); LEGREP.clear(); await loadFrom(await LDB.all(), KEYS);
+    /* migrasi otomatis dari localStorage (v1.1 ke bawah): dipindah ke IndexedDB lalu salinan lama dihapus */
+    for (const k of KEYS) {
+      const s = localStorage.getItem(Vault.xk(k)); if (!s) continue;
+      try { D[k] = CLEAN[k](await unseal(Vault.key, s, k)); if (ITEMS.includes(k)) stampOrder(D[k]); await persistLocal(k, Vault.key); localStorage.removeItem(Vault.xk(k)); } catch (e) { console.warn('Migrasi penyimpanan gagal:', k, e); }
+    }
+  },
+  loadCol(c) { const hi = ':￿'; return LDB.all([[c, c + hi], ...(c === 'rep' ? [['ph:', 'ph' + hi]] : c === 'cfg' ? [['img:', 'img' + hi]] : [])]).then(r => loadFrom(r, [c])); },
   set(k, v) { if (!Auth.canWrite(k)) { toast('Akses ditolak untuk peran Anda', 'err'); return false; } D[k] = v; persist(k); return true; },
-  wipeMemory() { KEYS.forEach(k => D[k] = structuredClone(DEF[k])); }
+  wipeMemory() { KEYS.forEach(k => D[k] = structuredClone(DEF[k])); PH.clear(); PHK.clear(); LEGREP.clear(); }
 };
 const save = k => Store.set(k, D[k]);
 /* sinkron antar-tab */
 BC && (BC.onmessage = async e => {
   const m = e.data || {};
   if (m.t === 'logout' && Auth.logged()) Auth.logout('Anda keluar di tab lain', true);
-  if (m.t === 'data' && Cloud.on && Vault.key) { Cloud.pull().then(ch => { if (ch && !$('#mod').innerHTML) render(); }).catch(() => {}); return; }
-  if (m.t === 'data' && Vault.key && KEYS.includes(m.k)) { try { const v = await Store.read(m.k); if (v) { D[m.k] = CLEAN[m.k](v); if (!$('#mod').innerHTML) render(); } } catch {} }
+  if (m.t !== 'data' || !Vault.key) return;
+  if (Cloud.on) { Cloud.pull().then(ch => ch && softRender()).catch(() => {}); return; }
+  /* tab lain menyimpan sesuatu: muat ulang koleksi itu saja, antre di belakang penyimpanan yang sedang berjalan */
+  chainP = chainP.then(() => KEYS.includes(m.k) ? Store.loadCol(m.k) : Store.loadAll()).catch(() => {}); await chainP; softRender();
 });
 
 /* ---------- Pembersih data (dipakai saat memuat, impor & restore) ---------- */
@@ -124,11 +253,11 @@ function toast(m, t) {
 let modalOk = null, lastFocus = null;
 function modal(t, body, ok, wide, okLabel = 'Simpan') {
   lastFocus = document.activeElement;
-  $('#mod').innerHTML = `<div class="ov" data-act="ovClose"><div class="dlg ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-label="${esc(t)}"><div class="dlg-h"><b>${t}</b><button class="ib" data-act="closeM" aria-label="Tutup">${I('x')}</button></div><div class="dlg-b">${body}</div><div class="dlg-f"><button class="btn2" data-act="closeM">Tutup</button>${ok ? `<button class="btn" id="mok" data-act="modalOk">${I('check')}${esc(okLabel)}</button>` : ''}</div></div></div>`;
+  $('#mod').innerHTML = `<div class="ov" data-act="ovClose"><div class="dlg ${wide ? 'wide' : ''}" role="dialog" aria-modal="true" aria-labelledby="dlgT" tabindex="-1"><div class="dlg-h"><b id="dlgT">${t}</b><button class="ib" data-act="closeM" aria-label="Tutup">${I('x')}</button></div><div class="dlg-b">${body}</div><div class="dlg-f"><button class="btn2" data-act="closeM">Tutup</button>${ok ? `<button class="btn" id="mok" data-act="modalOk">${I('check')}${esc(okLabel)}</button>` : ''}</div></div></div>`;
   modalOk = ok || null; post($('#mod'));
   setTimeout(() => ($('#mod .dlg-b input:not([type=hidden]):not([readonly]),#mod .dlg-b select,#mod .dlg-b textarea') || $('#mod .dlg'))?.focus?.(), 60);
 }
-const closeM = () => { $('#mod').innerHTML = ''; modalOk = null; lastFocus?.focus?.(); };
+const closeM = () => { const had = !!$('#mod').innerHTML; $('#mod').innerHTML = ''; modalOk = null; lastFocus?.focus?.(); if (had && typeof afterDialog === 'function') afterDialog(); };
 act('closeM', closeM);
 act('ovClose', (el, e) => { if (e.target === el) closeM(); });
 act('modalOk', async () => { if (!modalOk) return; const b = $('#mok'); b.disabled = true; try { if (await modalOk()) closeM(); } finally { if (b.isConnected) b.disabled = false; } });
@@ -138,7 +267,7 @@ function ask(msg, okLabel = 'Ya, lanjutkan', danger = true) {
     const w = document.createElement('div'); w.className = 'ov ask';
     w.innerHTML = `<div class="dlg sm" role="alertdialog" aria-modal="true"><div class="dlg-b askb"><div class="ask-ic ${danger ? 'bad' : ''}">${I(danger ? 'alert' : 'info')}</div><p></p></div><div class="dlg-f"><button class="btn2" data-r="0">Batal</button><button class="${danger ? 'btnd' : 'btn'}" data-r="1"></button></div></div>`;
     w.querySelector('p').textContent = msg; w.querySelector('[data-r="1"]').textContent = okLabel;
-    const done = v => { w.remove(); document.removeEventListener('keydown', k); res(v); };
+    const pf = document.activeElement, done = v => { w.remove(); document.removeEventListener('keydown', k); pf?.focus?.(); res(v); if (typeof afterDialog === 'function') afterDialog(); };
     const k = e => { if (e.key === 'Escape') done(false); };
     w.addEventListener('click', e => { const b = e.target.closest('[data-r]'); if (b) done(b.dataset.r === '1'); else if (e.target === w) done(false); });
     document.addEventListener('keydown', k); document.body.appendChild(w); w.querySelector('[data-r="1"]').focus();
@@ -147,6 +276,16 @@ function ask(msg, okLabel = 'Ya, lanjutkan', danger = true) {
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && $('#mod').innerHTML && !document.querySelector('.ov.ask')) closeM();
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k' && Auth.logged()) { e.preventDefault(); ACT.palette(); }
+  /* Perangkap fokus: Tab tidak keluar dari dialog yang sedang terbuka */
+  if (e.key === 'Tab') {
+    const dg = document.querySelector('.ov.ask .dlg') || $('#mod .dlg'); if (!dg) return;
+    const f = [...dg.querySelectorAll('button,[href],input,select,textarea,[tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && !x.hidden && x.type !== 'hidden' && x.offsetParent !== null);
+    if (!f.length) { e.preventDefault(); return; }
+    const a = document.activeElement, first = f[0], last = f[f.length - 1];
+    if (!dg.contains(a)) { e.preventDefault(); first.focus(); }
+    else if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); }
+    else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
+  }
 });
 
 /* Tabel responsif: di layar kecil baris berubah menjadi kartu (memakai data-label) */
@@ -198,7 +337,10 @@ async function reencode(f, maxDim, type = 'image/jpeg', q = .82, maxIn = 8e6) {
 function dl(n, t, m = 'text/csv') { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([t], {type:m + ';charset=utf-8'})); a.download = n.replace(/[^\w.\-]/g, '_'); a.rel = 'noopener'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 800); }
 /* Anti CSV/Formula injection (OWASP): awalan = + - @ TAB CR diberi tanda kutip */
 const toCSV = r => '﻿' + r.map(x => x.map(v => { let s = String(v ?? ''); if (/^[=+@\t\r]/.test(s) || /^-[^\d\s]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g, '""') + '"'; }).join(',')).join('\r\n');
-function parseCSV(t) { const r = []; let row = [], c = '', q = false; for (let i = 0; i < t.length; i++) { const h = t[i]; if (q) { if (h === '"') { if (t[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += h; } else if (h === '"') q = true; else if (h === ',' || h === ';') { row.push(c); c = ''; } else if (h === '\n' || h === '\r') { if (h === '\r' && t[i + 1] === '\n') i++; row.push(c); r.push(row); row = []; c = ''; } else c += h; if (r.length > 10000) break; } if (c || row.length) { row.push(c); r.push(row); } return r.filter(x => x.some(y => y.trim())); }
+/* Pemisah dideteksi dari baris judul (koma, titik koma, atau tab) — hanya SATU pemisah yang dipakai,
+   jadi koma di dalam isian (mis. gelar "S.E., M.Si") pada berkas ber-titik-koma tidak memecah kolom. */
+function csvDelim(t) { const n = {',':0, ';':0, '\t':0}; let q = false; for (let i = 0; i < t.length; i++) { const h = t[i]; if (h === '"') q = !q; else if (!q && (h === '\n' || h === '\r')) break; else if (!q && own(n, h)) n[h]++; } return n[';'] > n[','] && n[';'] >= n['\t'] ? ';' : n['\t'] > n[','] ? '\t' : ','; }
+function parseCSV(t, dl = csvDelim(t)) { const r = []; let row = [], c = '', q = false; for (let i = 0; i < t.length; i++) { const h = t[i]; if (q) { if (h === '"') { if (t[i + 1] === '"') { c += '"'; i++; } else q = false; } else c += h; } else if (h === '"') q = true; else if (h === dl) { row.push(c); c = ''; } else if (h === '\n' || h === '\r') { if (h === '\r' && t[i + 1] === '\n') i++; row.push(c); r.push(row); row = []; c = ''; } else c += h; if (r.length > 10000) break; } if (c || row.length) { row.push(c); r.push(row); } return r.filter(x => x.some(y => y.trim())); }
 
 /* Efek riak saat tombol ditekan */
 document.addEventListener('pointerdown', e => {

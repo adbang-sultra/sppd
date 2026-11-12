@@ -44,16 +44,20 @@ const Sess = {
   async save() {
     const sid = uid(), sk = await crypto.subtle.generateKey({name:'AES-GCM', length:256}, false, ['wrapKey', 'unwrapKey']);
     const w = await wrapDEK(Vault.key, sk); await IDB.put(sid, sk);
-    sessionStorage.setItem(SK, JSON.stringify({sid, uid:cur.id, exp:Date.now() + IDLE, abs:Date.now() + ABS, ...w, ...(Cloud.on ? {tok:Cloud.token} : {})}));
+    sessionStorage.setItem(SK, JSON.stringify({sid, uid:cur.id, exp:Date.now() + IDLE, abs:Date.now() + ABS, ...w, ...(Cloud.on ? {tok:Cloud.token, me:Cloud.me} : {})}));
   },
   get() { try { return JSON.parse(sessionStorage.getItem(SK)); } catch { return null; } },
+  patch(o) { const s = this.get(); if (s) sessionStorage.setItem(SK, JSON.stringify({...s, ...o})); },
   touch() { const s = this.get(); if (s) { s.exp = Math.min(s.abs, Date.now() + IDLE); sessionStorage.setItem(SK, JSON.stringify(s)); } },
   async clear() { const s = this.get(); sessionStorage.removeItem(SK); if (s?.sid) await IDB.del(s.sid); },
   async restore() {
     const s = this.get(); if (!s || !okId(s.sid) || s.exp < Date.now() || s.abs < Date.now()) { await this.clear(); return null; }
     const sk = await IDB.get(s.sid); if (!sk) { await this.clear(); return null; }
     Vault.key = await unwrapDEK(s, sk);
-    if (Cloud.on) { const me = await Cloud.rpc('sppd_me', {p_t:s.tok}); await Cloud.begin(s.tok, me.user); return cloudUser(me.user); }
+    if (Cloud.on) {
+      let me; try { me = (await Cloud.rpc('sppd_me', {p_t:s.tok})).user; } catch (e) { if (!e.net || !s.me?.id) throw e; me = s.me; }   /* offline: lanjut dari cache perangkat */
+      await Cloud.begin(s.tok, me); return cloudUser(me);
+    }
     await loadACL();
     const u = ACL.find(x => x.id === s.uid && x.on); if (!u) { Vault.key = null; await this.clear(); return null; }
     return u;
@@ -73,7 +77,7 @@ const Auth = {
   async logout(msg = '', fromOther) {
     try { await flush(); } catch {}
     if (cur) { try { log('Keluar'); await flush(); } catch {} }
-    if (Cloud.on) await Cloud.end();
+    if (Cloud.on) { const sisa = await Cloud.end(); if (sisa && !msg) msg = 'Ada perubahan yang belum terkirim (offline). Perubahan tersimpan di perangkat ini dan dikirim otomatis saat Anda masuk lagi.'; }
     cur = null; Vault.key = null; ACL = []; Store.wipeMemory(); TDraft = null; await Sess.clear();
     if (!fromOther) BC?.postMessage({t:'logout'});
     $('#main').innerHTML = $('#pa').innerHTML = $('#nav').innerHTML = $('#bnav').innerHTML = $('#rp').innerHTML = ''; closeM(); closeDrawers();
@@ -86,14 +90,14 @@ async function start(u, fresh) {
   cur = u; if (fresh) await Sess.save(); else Sess.touch();
   document.body.dataset.role = u.role; $('#login').hidden = true; $('#login').innerHTML = ''; $('#app').hidden = false;
   $('#uchip').innerHTML = `<span class="av">${esc(u.name.charAt(0).toUpperCase())}</span><span class="un"><b>${esc(u.name)}</b><small>${RL[u.role]}</small></span>`;
-  $('#sideUser').textContent = u.name + ' · ' + RL[u.role]; $('#sync').hidden = !Cloud.on; if (Cloud.on) Cloud.setState(Cloud.state === 'idle' ? 'ok' : Cloud.state);
+  $('#sideUser').textContent = u.name + ' · ' + RL[u.role] + ' · v' + APP_VER; try { navigator.storage?.persist?.(); } catch {} $('#sync').hidden = !Cloud.on; if (Cloud.on) Cloud.setState(Cloud.state === 'idle' ? 'ok' : Cloud.state);
   try { if (localStorage.getItem('sppd_mini') && wide()) $('#side').classList.add('mini'); } catch {}
   if (fresh) log('Masuk'); applyUI(); post($('#app')); render();
 }
 
 /* ---------- Migrasi dari versi lama (data polos + akun lama) ---------- */
 const legacyUsers = () => { try { const a = JSON.parse(localStorage.getItem(LEG)); return Array.isArray(a) ? a : []; } catch { return []; } };
-function legacyData() { const o = {}; KEYS.forEach(k => { const s = localStorage.getItem('sppd_' + k); if (s) { try { o[k] = CLEAN[k](JSON.parse(s)); } catch {} } }); return o; }
+function legacyData() { const o = {}; KEYS.forEach(k => { const s = localStorage.getItem('sppd_' + k); if (s) { try { o[k] = CLEAN[k](JSON.parse(s)); if (ITEMS.includes(k)) stampOrder(o[k]); } catch {} } }); return o; }
 async function createVault(owner, others, data) {
   KEYS.forEach(k => D[k] = data[k] ?? structuredClone(DEF[k]));
   ACL = cleanACL([owner.acl, ...others.map(o => o.acl)]);
@@ -108,8 +112,9 @@ async function authEntry(id, un, pw) { const salt = newSalt(); return {id, u:un,
 function view(msg = '') {
   if (Cloud.on && Cloud.ready === null) {
     $('#app').hidden = true; $('#login').hidden = false;
-    $('#login').innerHTML = `<div class="lg lgload">${I('cloud', 'big')}<p class="muted">Menghubungkan ke server…</p><div class="err" id="a_e"></div><button class="btn2" data-act="retryCloud" hidden id="a_r">${I('refresh')}<span>Coba lagi</span></button></div>`;
-    Cloud.status().then(() => view(msg)).catch(e => { $('#a_e').textContent = e.message; $('#a_r').hidden = false; });
+    $('#login').innerHTML = `<div class="lg lgload">${I('cloud', 'big')}<p class="muted">Menghubungkan ke server…</p><p class="muted sm" id="a_m"></p><div class="err" id="a_e" role="alert"></div><button class="btn2" data-act="retryCloud" hidden id="a_r">${I('refresh')}<span>Coba lagi</span></button></div>`;
+    $('#a_m').textContent = msg; applyUI(); post($('#login'));
+    Cloud.status().then(() => view(msg)).catch(e => { if ($('#a_e')) { $('#a_e').textContent = e.message; $('#a_r').hidden = false; } });
     return;
   }
   const leg = !Cloud.on && !Vault.ready() && legacyUsers().length, setup = Cloud.on ? !Cloud.ready : !Vault.ready() && !leg, u = UI();
@@ -119,7 +124,7 @@ function view(msg = '') {
   ${setup && Cloud.on ? `<label class="fld"><span>Kode setup</span><div class="iw">${I('key')}<input id="a_c" type="password" class="in" autocomplete="off" maxlength="200" required></div></label>` : ''}${setup ? `<label class="fld"><span>Nama lengkap</span><input id="a_n" class="in" maxlength="60" required></label>` : ''}<label class="fld"><span>Username</span><div class="iw">${I('user')}<input id="a_u" class="in" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30" required></div></label>
   <label class="fld"><span>Kata sandi</span><div class="iw">${I('lock')}<input id="a_p" type="password" class="in" autocomplete="${setup ? 'new-password' : 'current-password'}" maxlength="128" required ${setup ? 'data-in="pwMeter"' : ''}><button type="button" class="ib sm eye" data-act="peek" aria-label="Tampilkan kata sandi">${I('eye')}</button></div>${setup ? pwMeter() : ''}</label>
   ${setup ? `<label class="fld"><span>Ulangi kata sandi</span><div class="iw">${I('lock')}<input id="a_p2" type="password" class="in" autocomplete="new-password" maxlength="128" required></div></label>` : ''}
-  <div class="err" id="a_e" role="alert"></div><button class="btn big" id="a_b" type="submit">${I(setup ? 'check' : 'key')}<span>${setup ? 'Buat Akun & Masuk' : 'Masuk'}</span></button><p class="lg-foot">${I(Cloud.on ? 'cloud' : 'lock')} ${Cloud.on ? 'Data tersimpan terenkripsi di cloud · bisa dibuka dari browser mana pun' : 'Mode lokal · data hanya di browser ini'}</p></form></div>`;
+  <div class="err" id="a_e" role="alert"></div><button class="btn big" id="a_b" type="submit">${I(setup ? 'check' : 'key')}<span>${setup ? 'Buat Akun & Masuk' : 'Masuk'}</span></button><p class="lg-foot">${I(Cloud.on ? 'cloud' : 'lock')} ${Cloud.on ? 'Data tersimpan terenkripsi di cloud · bisa dibuka dari browser mana pun' : 'Mode lokal · data hanya di browser ini'} · v${esc(APP_VER)}</p></form></div>`;
   $('#a_e').textContent = msg; applyUI(); post($('#login'));
   setTimeout(() => $(setup ? '#a_n' : '#a_u')?.focus(), 50);
   $('#lf').addEventListener('submit', async e => {
@@ -129,16 +134,16 @@ function view(msg = '') {
     btn.disabled = true; btn.classList.add('busy'); $('#a_e').textContent = '';
     try {
       if (!UNRE.test(un)) return err('Username 3-30 karakter: huruf kecil, angka, . _ -');
-      if (Cloud.on) return setup ? cloudSetup(un, pw, err) : cloudLogin(un, pw, err);
+      if (Cloud.on) return await (setup ? cloudSetup(un, pw, err) : cloudLogin(un, pw, err));
       const f = fails(); if (f.until > Date.now()) return err('Terlalu banyak percobaan. Coba lagi dalam ' + Math.ceil((f.until - Date.now()) / 6e4) + ' menit.');
       if (setup) {
         const pe = pwCheck(pw, un); if (pe) return err(pe); if (pw !== $('#a_p2').value) return err('Ulangi kata sandi tidak sama');
         const id = uid(); Vault.key = await newDEK();
         const owner = {acl:{id, u:un, name:txt($('#a_n').value.trim(), 60) || un, role:'admin', on:true}, auth:await authEntry(id, un, pw)};
         await createVault(owner, [], legacyData());
-        localStorage.removeItem(FK); return start(ACL[0], true);
+        localStorage.removeItem(FK); return await start(ACL[0], true);
       }
-      if (leg) return legacyLogin(un, pw, err);
+      if (leg) return await legacyLogin(un, pw, err);
       const a = getA().find(x => x.u === un);
       if (!a) { await kdf(pw, newSalt()); addFail(); return err('Username atau kata sandi salah'); }
       if (!a.wk) {
@@ -151,11 +156,11 @@ function view(msg = '') {
       if (!u || !u.on) { Vault.key = null; ACL = []; return err('Akun tidak aktif. Hubungi Administrator.'); }
       localStorage.removeItem(FK);
       if ((a.it || 0) < ITER) { const A = getA(), i = A.findIndex(x => x.id === a.id); A[i] = await authEntry(a.id, a.u, pw); putA(A); }
-      await Store.loadAll(); return start(u, true);
-    } catch (x) { console.error(x); err('Terjadi kesalahan: ' + (x?.message || x)); }
+      await Store.loadAll(); return await start(u, true);
+    } catch (x) { if (!x?.net) console.error(x); err(x?.net || x?.skema ? x.message : 'Terjadi kesalahan: ' + (x?.message || x)); }
   });
 }
-act('retryCloud', () => view());
+act('retryCloud', () => view($('#a_m')?.textContent || ''));
 async function cloudLogin(un, pw, err) {
   const sl = await Cloud.rpc('sppd_salt', {p_u:un}), {kek, ah} = await Cloud.kdf3(pw, sl.salt, sl.it);
   const r = await Cloud.rpc('sppd_login', {p_u:un, p_ah:ah});
@@ -175,7 +180,7 @@ async function cloudSetup(un, pw, err) {
   const me = {id, u:un, role:'admin', salt:ent.salt, it:ent.it, wiv:ent.wiv, wk:ent.wk, kv:3};
   await Cloud.begin(r.token, me); Object.assign(D, local);
   ACL = cleanACL([{id, u:un, name, role:'admin', on:true}, ...others.map(o => ({...o, on:o.on}))]);
-  await Cloud.queueAll(); toast(la ? 'Data lokal berhasil diunggah ke cloud' : 'Server cloud siap digunakan');
+  await Cloud.queueAll(); try { await Cloud.claimAll(D.sppd.map(s => s.no)); } catch {} toast(la ? 'Data lokal berhasil diunggah ke cloud' : 'Server cloud siap digunakan');
   return start(cloudUser(me), true);
 }
 act('peek', el => { const i = el.parentElement.querySelector('input'); i.type = i.type === 'password' ? 'text' : 'password'; el.innerHTML = I(i.type === 'password' ? 'eye' : 'lock'); });
@@ -216,7 +221,7 @@ act('pwEdit', () => {
       const pe = pwCheck(n, cur.u); if (pe) { toast(pe, 'err'); return false; } if (n !== $('#pw_n2').value) { toast('Ulangi kata sandi tidak sama', 'err'); return false; }
       const e = await Cloud.entry(cur.id, cur.u, n), r = await Cloud.rpc('sppd_pw', {p_t:Cloud.token, p_old:old.ah, p:e});
       if (!r.ok) { toast('Kata sandi lama salah', 'err'); return false; }
-      Cloud.setMe({...me, salt:e.salt, it:e.it, wiv:e.wiv, wk:e.wk}); log('Mengganti kata sandi'); toast('Kata sandi diganti di semua perangkat'); return true;
+      Cloud.setMe({...me, salt:e.salt, it:e.it, wiv:e.wiv, wk:e.wk}); Sess.patch({me:Cloud.me}); log('Mengganti kata sandi'); toast('Kata sandi diganti di semua perangkat'); return true;
     }
     const A = getA(), i = A.findIndex(x => x.id === cur.id);
     try { await unwrapDEK(A[i], await kdf($('#pw_o').value, A[i].salt, A[i].it)); } catch { addFail(); toast('Kata sandi lama salah', 'err'); return false; }
@@ -232,10 +237,11 @@ AFTER.user = () => { if (!Cloud.on) return; Cloud.rpc('sppd_user_list', {p_t:Clo
 const cloudRows = () => { const ids = new Set([...(CUL || []).map(x => x.id), ...ACL.map(x => x.id)]); return [...ids].map(id => { const s = (CUL || []).find(x => x.id === id), a = ACL.find(x => x.id === id) || {}; return {id, u:s?.u || a.u, name:a.name || s?.u || a.u, role:s?.role || a.role, on:s ? s.aktif : !!a.on, need:!s || !s.auth, lock:s?.lock}; }); };
 pages.user = () => {
   const A = getA();
-  if (Cloud.on) { const L = cloudRows(); return `<div class="card">${cardH('Pengguna & Peran', 'shield', b('Tambah Pengguna', 'uEdit', {}, 'btn', 'plus'))}${CUL === null ? '<p class="muted sm">Memuat daftar pengguna dari server…</p>' : ''}${table(['Username', 'Nama', 'Peran', 'Status', 'Aksi'], L.map(u => [`<b>${esc(u.u)}</b>`, esc(u.name), RL[u.role] || '-', !u.on ? '<span class="badge b-bad">Nonaktif</span>' : u.need ? '<span class="badge b-warn">Perlu atur ulang sandi</span>' : u.lock ? '<span class="badge b-warn">Terkunci sementara</span>' : badge('Aktif'), rowAct([iBtn('uEdit', {id:u.id}, 'edit', 'Ubah'), u.id === cur.id ? '' : iBtn('uDel', {id:u.id}, 'trash', 'Hapus', 'ib sm danger')])]))}<div class="info mt-3">${I('cloud')}<span>Peran & status diperiksa di server. Kata sandi tidak pernah dikirim — server hanya menyimpan hash kunci otentikasi & kunci data terbungkus. Mengganti kata sandi pengguna lain langsung mengeluarkan sesinya di semua perangkat.</span></div></div>`; }
+  if (Cloud.on) { const L = cloudRows(); return `<div class="card">${cardH('Pengguna & Peran', 'shield', b('Jejak Audit', 'audit', {}, 'btn2', 'clock') + b('Tambah Pengguna', 'uEdit', {}, 'btn', 'plus'))}${CUL === null ? '<p class="muted sm">Memuat daftar pengguna dari server…</p>' : ''}${table(['Username', 'Nama', 'Peran', 'Status', 'Aksi'], L.map(u => [`<b>${esc(u.u)}</b>`, esc(u.name), RL[u.role] || '-', !u.on ? '<span class="badge b-bad">Nonaktif</span>' : u.need ? '<span class="badge b-warn">Perlu atur ulang sandi</span>' : u.lock ? '<span class="badge b-warn">Terkunci sementara</span>' : badge('Aktif'), rowAct([iBtn('uEdit', {id:u.id}, 'edit', 'Ubah'), u.id === cur.id ? '' : iBtn('uDel', {id:u.id}, 'trash', 'Hapus', 'ib sm danger')])]))}<div class="info mt-3">${I('cloud')}<span>Peran & status diperiksa di server. Kata sandi tidak pernah dikirim — server hanya menyimpan hash kunci otentikasi & kunci data terbungkus. Mengganti kata sandi pengguna lain langsung mengeluarkan sesinya di semua perangkat.</span></div></div>`; }
   return `<div class="card">${cardH('Pengguna & Peran', 'shield', b('Tambah Pengguna', 'uEdit', {}, 'btn', 'plus'))}<div class="roles"><div><b>${I('shield')}Administrator</b><span>Semua menu, tampilan, pengguna, backup</span></div><div><b>${I('edit')}Operator</b><span>Kelola pegawai, program, SPPD, laporan</span></div><div><b>${I('eye')}Pembaca</b><span>Hanya melihat & mencetak</span></div></div>
   ${table(['Username', 'Nama', 'Peran', 'Status', 'Aksi'], ACL.map(u => { const a = A.find(x => x.id === u.id), need = !a?.wk; return [`<b>${esc(u.u)}</b>`, esc(u.name), RL[u.role], u.on ? (need ? '<span class="badge b-warn">Perlu atur ulang sandi</span>' : badge('Aktif')) : '<span class="badge b-bad">Nonaktif</span>', rowAct([iBtn('uEdit', {id:u.id}, 'edit', 'Ubah'), u.id === cur.id ? '' : iBtn('uDel', {id:u.id}, 'trash', 'Hapus', 'ib sm danger')])]; }))}
-  <div class="info mt-3">${I('lock')}<span>Kata sandi tidak pernah disimpan. Setiap akun memegang salinan kunci data yang terbungkus kata sandinya sendiri. Akun bertanda "Perlu atur ulang sandi" berasal dari versi lama — klik Ubah dan isi kata sandi baru.</span></div></div>`;
+  <div class="info mt-3">${I('lock')}<span>Kata sandi tidak pernah disimpan. Setiap akun memegang salinan kunci data yang terbungkus kata sandinya sendiri. Akun bertanda "Perlu atur ulang sandi" berasal dari versi lama — klik Ubah dan isi kata sandi baru.</span></div>
+  <div class="warn mt-3">${I('alert')}<span><b>Batas mode lokal:</b> semua akun di browser ini memegang kunci data yang sama dan peran hanya diperiksa oleh aplikasi di browser — bukan pengaman terhadap pengguna yang paham teknis. Bila perlu pembatasan peran yang sungguh-sungguh (Pembaca tidak bisa mengubah data), aktifkan Penyimpanan Cloud: di sana peran diperiksa server.</span></div></div>`;
 };
 act('uEdit', el => {
   const id = el.dataset.id, u = id ? (Cloud.on ? cloudRows().find(x => x.id === id) : ACL.find(x => x.id === id)) : {role:'operator', on:true}; if (id && !u) return;
@@ -273,6 +279,14 @@ act('uDel', async el => {
   if (!admins(ACL.filter(x => x.id !== id))) return toast('Harus ada minimal satu administrator aktif', 'err');
   if (!(await ask('Hapus pengguna ' + u.u + '? Salinan kunci datanya juga dihapus.', 'Hapus'))) return;
   ACL = ACL.filter(x => x.id !== id); putA(getA().filter(x => x.id !== id)); await saveACL(); log('Menghapus pengguna ' + u.u); render();
+}, 'a');
+
+/* Jejak audit server: login, login gagal, perubahan pengguna, ganti sandi (tidak bisa diubah dari browser) */
+const AUD = {setup:'Membuat administrator pertama', login:'Masuk', 'login-gagal':'Gagal masuk', 'user-put':'Menambah/mengubah pengguna', 'user-del':'Menghapus pengguna', 'ganti-sandi':'Mengganti kata sandi'};
+act('audit', async () => {
+  if (!Cloud.on) return;
+  try { const L = await Cloud.audit(300); modal('Jejak Audit Server', `<p class="muted sm mb-3">Dicatat oleh server, tidak dapat diubah atau dihapus dari aplikasi. Disimpan 400 hari.</p>${table(['Waktu', 'Pengguna', 'Kejadian', 'Keterangan'], L.map(x => [esc(new Date(x.at).toLocaleString('id-ID')), `<b>${esc(x.u || '-')}</b>`, x.act === 'login-gagal' ? `<span class="badge b-bad">${esc(AUD[x.act])}</span>` : esc(AUD[x.act] || x.act), esc(x.info || '')]), 'keep')}`, null, true); }
+  catch (e) { toast(e.message, 'err'); }
 }, 'a');
 
 /* ---------- Boot ---------- */

@@ -333,6 +333,10 @@ input[type=date].in::-webkit-calendar-picker-indicator{filter:invert(var(--inv,1
   #pa .paper{padding:0;width:auto;min-height:0;box-shadow:none;margin:0;zoom:1!important}
   #pa .paper:not(:last-child){page-break-after:always}
   tr,.sig{page-break-inside:avoid}
+  /* v1.2: blok tanda tangan tidak terpotong antarhalaman; margin tetap putih walau mode gelap + "Background graphics" */
+  :root{color-scheme:light!important}
+  .sig2,.sg2c,.sg3c,.sgw,.tte,.sgb,.wsg,.dnote{break-inside:avoid;page-break-inside:avoid}
+  .lap h4,.lap h5{break-after:avoid;page-break-after:avoid}
 }
 /* Mobile minimalis: kolom sekunder disembunyikan pada kartu (lengkapnya lewat tombol Detail) */
 @media (max-width:767px){.tblw:not(.keep) .tbl td:is([data-label=JK],[data-label=Telp],[data-label=Maksud],[data-label=Kembali],[data-label=Kode],[data-label=Subkegiatan],[data-label="Sumber Dana"]){display:none}}
@@ -345,3 +349,20 @@ input[type=date].in::-webkit-calendar-picker-indicator{filter:invert(var(--inv,1
 .sync{cursor:default}.sync[data-s=ok]{color:var(--ok)}.sync[data-s=sync]{color:var(--warn)}.sync[data-s=sync] .ico{animation:pulse 1s ease-in-out infinite}.sync[data-s=off],.sync[data-s=err]{color:var(--bad)}
 @keyframes pulse{50%{opacity:.35}}
 .lgload{width:min(24rem,100%);align-items:center;text-align:center;border-radius:calc(var(--rad) * 1.3);border:1px solid var(--bd2)}
+
+/* ============================================================
+   v1.2 — rincian biaya, penanda tangan, realisasi pagu
+   ============================================================ */
+.biar{display:grid;grid-template-columns:2.4fr .7fr 1fr 1.5fr 1.4fr auto;gap:.35rem;margin-bottom:.4rem;align-items:center}.biar .in{width:100%}
+.bsub{font-size:.8rem;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.btot{display:flex;justify-content:space-between;align-items:center;padding:.55rem .75rem;border-radius:calc(var(--rad) * .6);background:var(--sf3);border:1px solid var(--bd);font-size:.85rem;margin-top:.3rem}.btot b{font-size:1rem;font-variant-numeric:tabular-nums}
+.sgr{display:grid;grid-template-columns:1.3fr 1.5fr 1.2fr auto;gap:.35rem;margin-bottom:.4rem}.sgr .in{width:100%}
+@media (max-width:640px){.biar{grid-template-columns:1fr 1fr 1fr}.biar .in:first-child{grid-column:span 3}.bsub{grid-column:span 2;text-align:left}.sgr{grid-template-columns:1fr 1fr}.sgr .in:first-child{grid-column:span 2}}
+.neg{color:var(--bad)}
+.pbar{display:inline-block;vertical-align:middle;width:5rem;height:.45rem;border-radius:99px;background:var(--sf3);overflow:hidden;margin-right:.35rem}
+.pbar i{display:block;height:100%;width:var(--w,0%);background:var(--ac);border-radius:99px;transition:width .6s var(--ease)}.pbar.over i{background:var(--bad)}
+.askb p{white-space:pre-line}
+
+/* v1.2 — keterbacaan & target sentuh: teks terkecil dinaikkan; tombol ikon minimal 44px di layar sentuh */
+.ng,.un small,#bc,.bn,.cl,.icb small,.side-foot,.side-foot span,.pwm span,.kpi-s,.cv,.donut span,.tl span,.tbl th,.badge{font-size:.75rem}
+@media (pointer:coarse){.ib,.ib.sm{min-width:44px;min-height:44px}}

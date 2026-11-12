@@ -95,19 +95,26 @@ const FX = (() => {
       if (q.life <= 0) B.splice(i, 1);
     }
   }
+  /* v1.2: dibatasi ±30 fps, dijeda selagi dialog terbuka, dan dimatikan otomatis (gambar diam) bila perangkat
+     terbukti tidak sanggup — keputusan itu diingat per perangkat (localStorage 'sppd_fxlow'). */
+  let lastF = 0, cnt = 0, slowN = 0, low = false; try { low = localStorage.getItem('sppd_fxlow') === '1'; } catch {}
+  const stop = () => { cancelAnimationFrame(raf); raf = 0; };
+  const still = () => { stop(); B.length = 0; x.clearRect(0, 0, W, H); draw[mode]?.(); };
   function frame(now) {
-    t = now || 0; m.px += (m.tx - m.px) * .06; m.py += (m.ty - m.py) * .06;
+    raf = (!RM.matches && !document.hidden && !low) ? requestAnimationFrame(frame) : 0;
+    now = now || 0; const d = now - lastF; if (d < 30) return; lastF = now;
+    if (document.getElementById('mod')?.firstChild) return;
+    t = now; m.px += (m.tx - m.px) * .06; m.py += (m.ty - m.py) * .06;
     if (bgi) bgi.style.transform = `translate3d(${(.5 - m.px) * 24}px,${(.5 - m.py) * 24}px,0) scale(1.06)`;
     x.clearRect(0, 0, W, H); draw[mode]?.(); bursts();
-    raf = (!RM.matches && !document.hidden) ? requestAnimationFrame(frame) : 0;
+    if (d < 400 && mode !== 'none') { cnt++; if (d > 55) slowN++; if (cnt >= 90) { if (slowN > 54) { low = true; try { localStorage.setItem('sppd_fxlow', '1'); } catch {} still(); } cnt = slowN = 0; } }
   }
-  const stop = () => { cancelAnimationFrame(raf); raf = 0; };
-  const startLoop = () => { stop(); if (mode === 'none' && !B.length) { x.clearRect(0, 0, W, H); return; } raf = requestAnimationFrame(frame); };
+  const startLoop = () => { stop(); if (mode === 'none' && !B.length) { x.clearRect(0, 0, W, H); return; } if (low) { still(); return; } raf = requestAnimationFrame(frame); };
   addEventListener('pointermove', e => { m.x = e.clientX; m.y = e.clientY; m.tx = e.clientX / W; m.ty = e.clientY / H; }, {passive:true});
   addEventListener('pointerleave', () => { m.x = m.y = -1e4; });
   document.addEventListener('pointerleave', () => { m.x = m.y = -1e4; });
   addEventListener('pointerdown', e => {
-    if (mode === 'none' || RM.matches || e.target.closest('input,select,textarea,.paper')) return;
+    if (mode === 'none' || low || RM.matches || e.target.closest('input,select,textarea,.paper')) return;
     B.push({x:e.clientX, y:e.clientY, life:1, ring:1, c:0});
     for (let i = 0; i < 14; i++) { const a = R(0, 6.283), s = R(1.2, 3.6); B.push({x:e.clientX, y:e.clientY, vx:Math.cos(a) * s, vy:Math.sin(a) * s - 1, life:1, c:i % 2}); }
     if (!raf) startLoop();
@@ -120,6 +127,8 @@ const FX = (() => {
       mode = own(draw, fx) ? fx : 'none'; pow = clamp(power, 10, 100, 60); C = [rgb(hex(c1)), rgb(hex(c2, '#6366f1'))];
       init(); if (RM.matches) { x.clearRect(0, 0, W, H); draw[mode]?.(); return; } startLoop();
     },
+    get low() { return low; },
+    wake() { low = false; cnt = slowN = 0; try { localStorage.removeItem('sppd_fxlow'); } catch {} startLoop(); },
     list: [['constellation', 'Rasi Bintang', 'Titik terhubung, mengikuti kursor'], ['waves', 'Gelombang', 'Garis ombak bereaksi pada kursor'], ['bokeh', 'Bokeh', 'Bulatan cahaya melayang'], ['stars', 'Langit Malam', 'Bintang berkelip + bintang jatuh'], ['aurora', 'Aurora', 'Cahaya warna bergerak lembut'], ['none', 'Tanpa Efek', 'Hemat baterai']]
   };
 })();

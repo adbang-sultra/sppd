@@ -27,6 +27,8 @@
   ],
   "redirects": [
     {"source": "/contoh-data/(.*)", "destination": "/", "permanent": false},
-    {"source": "/(README|CHECKPOINT)(.md)?", "destination": "/", "permanent": false}
+    {"source": "/(README|CHECKPOINT)(.md)?", "destination": "/", "permanent": false},
+    {"source": "/tests/(.*)", "destination": "/", "permanent": false},
+    {"source": "/supabase/(.*)", "destination": "/", "permanent": false}
   ]
 }

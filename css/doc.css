@@ -78,6 +78,16 @@
 .lap .sig2{margin:18px 0 0 40%}.lap .sig2 table{margin-top:10mm;margin-left:-40%;width:140%}.lap .sig2 td{padding:0 8px 12mm 0;vertical-align:bottom}.lap .sig2 td:first-child{width:8mm}
 .lap .gal img{display:block;width:80%;height:110mm;object-fit:cover;margin:10mm auto 0;page-break-inside:avoid}
 
+/* ---------- Rincian biaya & kuitansi (v1.2) ---------- */
+.paper .rbh{width:auto;margin:5mm 0 3mm}.rbh td{padding:.4mm 0}.rbh .l1w{width:52mm}.rbh .l2{width:5mm}
+.rbt{font-size:10.5pt}.paper .rbt td{padding:1mm 2mm}.rbt .th td{font-weight:700}.rbt .num{text-align:right;white-space:nowrap}.rbt .c-jm{width:34mm}.rbt .c-kt{width:58mm}
+.sg2c,.sg3c{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:7mm;break-inside:avoid}.sg3c{grid-template-columns:1fr 1fr 1fr;gap:4mm;font-size:10.5pt;margin-top:12mm}
+.wsg{margin-top:1mm}.wsg .sg-sp{height:20mm}
+.rbl{border-top:1px solid #000;margin:7mm 0 0}
+.paper .kwt{margin-top:6mm}.kwt td{padding:1.2mm 0}.kwt .l1w{width:42mm}.kwt .l2{width:5mm}.kwt .amt{font-weight:700;font-size:12pt}
+/* baris pengikut kosong pada SPD tetap setinggi satu baris */
+.spdt td:empty::after{content:'\00a0'}
+
 /* ---------- Rekap cetak ---------- */
 .paper.rk{font:10pt/1.4 Arial,sans-serif}.d-h{text-align:center;margin:10px 0;font-size:13pt}
 .paper.rk .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}

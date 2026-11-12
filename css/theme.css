@@ -35,7 +35,7 @@
 
 /* Ukuran proporsional: font dasar mengikuti lebar layar (dikunci min/maks),
    semua ukuran memakai rem → tata letak tetap sama di semua perangkat. */
-html{font-size:calc(clamp(13px,.42vw + 10.6px,17.5px) * var(--scale));-webkit-text-size-adjust:100%;text-size-adjust:100%}
+html{font-size:calc(clamp(14px,.42vw + 10.6px,17.5px) * var(--scale));-webkit-text-size-adjust:100%;text-size-adjust:100%}
 html,body{height:100%;width:100%;margin:0}
 body{font-family:var(--font);color:var(--tx);background:var(--bg0);overflow:hidden;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;font-feature-settings:'ss01','cv11'}
 [hidden]{display:none!important}

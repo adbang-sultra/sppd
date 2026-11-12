@@ -7,6 +7,8 @@
    - mode        : 'dark' | 'light' | 'auto' (ikut perangkat)
    - icons       : ikon menu khusus, contoh { dash:{t:'svg',v:'home'}, emp:{t:'txt',v:'👥'} }
    ============================================================ */
+const APP_VER = '1.2';
+
 const BRAND = {
   appName: 'SIM Pegawai & SPPD',
   subtitle: 'Sistem Informasi Perjalanan Dinas',
