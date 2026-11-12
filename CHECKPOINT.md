@@ -15,3 +15,8 @@
 - [ ] Login baru saat offline (sekarang: sesi yang sedang berjalan tetap hidup saat offline, tetapi masuk dari awal perlu server)
 - [ ] Kode masih berbaris panjang (belum diformat ulang agar selisih dengan v1.1 tetap terbaca)
 - [ ] Isi SYNC di js/config.js, jalankan SQL di Supabase asli, uji di perangkat nyata & deploy Vercel
+
+## Perbaikan tambahan (v1.2.1)
+- [x] Kolom tanggal (form SPPD, laporan, filter): pemilih kalender bisa dipakai — `all:unset` pada `.in` merusak tampilan bawaan `type=date`; CSS dipulihkan (appearance, color-scheme gelap/terang) + klik di mana pun pada kolom membuka kalender (`showPicker`)
+- [x] Penyimpanan ke database: perubahan dikirim ke server lebih cepat (120 ms), dikirim paksa saat tab disembunyikan/ditutup, dan ada peringatan penutupan tab bila masih ada yang belum terkirim; mode lokal kini diberi penanda merah + notifikasi "BELUM tersimpan di database"
+- [ ] Hubungkan ke Supabase: isi `SYNC.url` & `SYNC.anonKey` di js/config.js (tanpa ini aplikasi tetap mode lokal)

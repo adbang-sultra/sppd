@@ -90,7 +90,7 @@ async function start(u, fresh) {
   cur = u; if (fresh) await Sess.save(); else Sess.touch();
   document.body.dataset.role = u.role; $('#login').hidden = true; $('#login').innerHTML = ''; $('#app').hidden = false;
   $('#uchip').innerHTML = `<span class="av">${esc(u.name.charAt(0).toUpperCase())}</span><span class="un"><b>${esc(u.name)}</b><small>${RL[u.role]}</small></span>`;
-  $('#sideUser').textContent = u.name + ' · ' + RL[u.role] + ' · v' + APP_VER; try { navigator.storage?.persist?.(); } catch {} $('#sync').hidden = !Cloud.on; if (Cloud.on) Cloud.setState(Cloud.state === 'idle' ? 'ok' : Cloud.state);
+  $('#sideUser').textContent = u.name + ' · ' + RL[u.role] + ' · v' + APP_VER; try { navigator.storage?.persist?.(); } catch {} $('#sync').hidden = false; if (Cloud.on) Cloud.setState(Cloud.state === 'idle' ? 'ok' : Cloud.state); else { const el = $('#sync'); el.dataset.s = 'local'; el.title = 'MODE LOKAL: data hanya tersimpan di browser ini, BELUM masuk ke database. Isi SYNC (url & anonKey Supabase) di js/config.js.'; el.innerHTML = I('cloudOff'); setTimeout(() => toast('Mode lokal: data BELUM tersimpan di database (hanya di browser ini). Hubungkan Supabase di js/config.js.', 'err'), 800); }
   try { if (localStorage.getItem('sppd_mini') && wide()) $('#side').classList.add('mini'); } catch {}
   if (fresh) log('Masuk'); applyUI(); post($('#app')); render();
 }

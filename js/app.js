@@ -409,6 +409,8 @@ window.addEventListener('hashchange', () => Auth.logged() && render());
    isian yang sudah disentuh pengguna, fokus, posisi kursor & gulir dipertahankan. Bila sebuah dialog sedang
    terbuka, render ditunda sampai dialog ditutup. */
 let pendR = false;
+/* Kolom tanggal: klik/ketuk di mana pun pada kolom membuka kalender pemilih */
+document.addEventListener('click', e => { const t = e.target; if (t && t.tagName === 'INPUT' && t.type === 'date' && !t.readOnly && !t.disabled && typeof t.showPicker === 'function') { try { t.showPicker(); } catch {} } });
 document.addEventListener('input', e => { const t = e.target; if (t.id && !t.dataset.in && t.closest?.('#main')) t.dataset.dirty = '1'; }, true);
 function softRender() {
   if (!Auth.logged()) return;

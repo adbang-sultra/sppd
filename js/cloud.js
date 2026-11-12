@@ -122,7 +122,7 @@ const Cloud = (() => {
 
   /* ---------- Kirim ---------- */
   let qT = 0, busy = null;
-  function queue(col) { if (!TOK) return; Q.add(col); setState('sync'); clearTimeout(qT); qT = setTimeout(flush, 350); }
+  function queue(col) { if (!TOK) return; Q.add(col); setState('sync'); clearTimeout(qT); qT = setTimeout(flush, 120); }
   async function flush() {
     if (busy) return busy;
     if (!TOK || (!Q.size && !logDirty.size)) { if (state === 'sync') setState('ok'); return; }
@@ -214,6 +214,10 @@ const Cloud = (() => {
     timer = setInterval(async () => { if (!TOK || document.hidden) return; try { if (Q.size || logDirty.size) await flush(); else if (await pull()) changed(); } catch (e) { if (e.sess) Auth.logout('Sesi cloud berakhir, silakan masuk lagi'); else setState(e.net ? 'off' : 'err', e.message); } }, 15000);
   }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && TOK) pull().then(c => c && changed()).catch(() => {}); });
+  /* Jangan sampai ada perubahan yang tertinggal saat tab disembunyikan/ditutup: kirim segera, dan beri peringatan bila belum selesai */
+  document.addEventListener('visibilitychange', () => { if (document.hidden && TOK && (Q.size || logDirty.size)) flush().catch(() => {}); });
+  addEventListener('pagehide', () => { if (TOK && (Q.size || logDirty.size || busy)) flush().catch(() => {}); });
+  addEventListener('beforeunload', e => { if (TOK && (Q.size || logDirty.size || busy || state === 'sync')) { e.preventDefault(); e.returnValue = ''; } });
   addEventListener('online', () => { if (TOK) flush().then(() => pull()).then(c => c && changed()).catch(() => {}); });
   const noHash = s => sha256hex('sppd-no:' + String(s).trim().toLowerCase().replace(/\s+/g, ' '));
 
