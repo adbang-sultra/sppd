@@ -49,6 +49,6 @@ const PRESETS = {
    Kosongkan keduanya untuk mode lokal (data hanya di browser ini).
    ============================================================ */
 const SYNC = {
-  url: '',
-  anonKey: ''
+  url: 'https://wvzvpcddtpzkmlgxgdtk.supabase.co',
+  anonKey: 'sb_publishable_m3H7cayGw4750WmvrQaV8w_4hiUWY-F'
 };
