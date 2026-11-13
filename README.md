@@ -1,4 +1,4 @@
-# SIM Pegawai & SPPD — v1.2
+# SIM Pegawai & SPPD — v1.2.3
 
 Aplikasi statis (tanpa server). Deploy ke Vercel: `vercel --prod` di folder ini, atau unggah ke GitHub → Import Project (Framework: **Other**, tanpa build command).
 Harus dibuka lewat **HTTPS** (atau localhost) karena memakai Web Crypto.
@@ -53,9 +53,10 @@ Selesai — masuk dari Chrome, Edge, Firefox, Safari, HP, atau komputer lain aka
 ## Dokumen cetak & Word
 - **Kop surat** model Executive Summary Setda Prov. Sultra (lambang kiri, 3 baris, garis tebal). Ubah teks/logo di **Pengaturan Instansi**, atau pilih **Gambar kop jadi** untuk memakai gambar kop resmi utuh.
 - **Surat Tugas, SPD, Lampiran SPD** mengikuti contoh SPT (tabel a/b/c, pengikut, *Coret yang tidak perlu, lembar I–VI, PERHATIAN).
-- **Tanda tangan**: *Elektronik (TTE)* → kotak "Ditandatangani secara elektronik oleh" berisi penanda `${ttd}` + catatan UU ITE/BSrE di kaki halaman; atau *Basah/manual*.
+- **Tanda tangan manual (basah)**: ruang tanda tangan dibiarkan kosong, tanpa catatan kaki. Penanda tangan per SPPD bisa pejabat bawaan, **Kepala OPD** (data di Pengaturan Instansi → *Data Kepala OPD*), atau penanda tangan lain.
+- **Huruf**: seluruh isi dokumen (cetak/PDF maupun Word) **Arial 12 pt**, kecuali kop surat.
 - **Laporan Perjalanan** model Bandung: kop hanya halaman 1, nomor halaman kanan atas, dokumentasi 2 foto/halaman.
-- **Unduh Word (.docx asli)** di menu Cetak Dokumen: kop di header, catatan di footer — bisa dibuka di MS Word, WPS, LibreOffice, Google Docs, lalu diunggah ke aplikasi TTE (penanda `${ttd}` diganti QR).
+- **Unduh Word (.docx asli)** di menu Cetak Dokumen: kop di header, tanpa catatan kaki — bisa dibuka di MS Word, WPS, LibreOffice, Google Docs.
 - Cetak PDF: pilih "Simpan sebagai PDF", ukuran A4, matikan opsi *Header dan footer* browser.
 
 ## Mengganti tampilan kapan saja

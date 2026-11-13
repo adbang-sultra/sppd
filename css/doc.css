@@ -1,15 +1,17 @@
 /* ============================================================
    DOKUMEN CETAK — kop model Executive Summary Setda Sultra,
-   SPT/SPD/Lampiran model contoh SPT (TTE), Laporan model Bandung.
-   Font: Tinos (setara metrik Times New Roman) & Caprasimo (mirip Cooper Black),
-   disertakan lokal agar hasil cetak sama di semua perangkat.
+   SPT/SPD/Lampiran model contoh SPT, Laporan model Bandung.
+   Isi dokumen: Arial 12 pt di semua bagian. Kop surat tetap memakai
+   Tinos (setara metrik Times New Roman) & Caprasimo (mirip Cooper Black), disertakan lokal.
    ============================================================ */
 @font-face{font-family:'Tinos';font-weight:400;font-style:normal;font-display:swap;src:url(../assets/fonts/tinos-400.woff2) format('woff2')}
 @font-face{font-family:'Tinos';font-weight:700;font-style:normal;font-display:swap;src:url(../assets/fonts/tinos-700.woff2) format('woff2')}
 @font-face{font-family:'Caprasimo';font-weight:400;font-style:normal;font-display:swap;src:url(../assets/fonts/caprasimo.woff2) format('woff2')}
 
-.paper{--serif:'Tinos','Times New Roman',Times,serif;background:#fff;width:210mm;min-height:297mm;padding:14mm 18mm 12mm;margin:0 auto 16px;font:11pt/1.35 var(--serif);box-sizing:border-box;color:#000;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);zoom:var(--pz,1);border-radius:2px}
+.paper{--serif:'Tinos','Times New Roman',Times,serif;--sans:Arial,'Liberation Sans',Helvetica,sans-serif;background:#fff;width:210mm;min-height:297mm;padding:14mm 18mm 12mm;margin:0 auto 16px;font:12pt/1.3 var(--sans);box-sizing:border-box;color:#000;box-shadow:0 10px 30px -10px rgba(0,0,0,.5);zoom:var(--pz,1);border-radius:2px}
 .paper *{color:#000}
+/* semua teks isi dokumen Arial 12 pt (kecuali kop surat di bawah) */
+.paper .pbody,.paper table,.paper td,.paper p,.paper div:not(.kop2):not(.kop2-t):not(.k1):not(.k2):not(.k3){font-family:var(--sans);font-size:12pt}
 .paper table{border-collapse:collapse}
 .paper p{margin:0}
 .paper.fx{display:flex;flex-direction:column}.paper.fx .pbody{flex:1}
@@ -25,11 +27,11 @@
 .kopw{width:100%}.kopw-l{width:95px;vertical-align:middle}
 
 /* ---------- Umum ---------- */
-.ttl1{text-align:center;font-weight:700;font-size:11.5pt;margin-top:2mm}.ttl1.u{text-decoration:underline;margin:4mm 0 3mm}
-.ttl2{text-align:center;font-size:10.5pt;margin-bottom:7mm}
+.ttl1{text-align:center;font-weight:700;margin-top:2mm}.ttl1.u{text-decoration:underline;margin:4mm 0 3mm}
+.ttl2{text-align:center;margin-bottom:7mm}
 .ttl3{text-align:center;font-weight:700;margin:6mm 0 3mm}
 .lbl{width:100%}.lbl td{vertical-align:top;padding:.4mm 0}.lbl .l1{width:22mm}.lbl .l2{width:5mm}
-.lbl.lbr{width:auto;margin:0 0 0 55%;font-size:10pt}.lbl.lbr td:first-child{padding-right:3mm}
+.lbl.lbr{width:auto;margin:0 0 0 55%}.lbl.lbr td:first-child{padding-right:3mm}
 .ol{margin:0;padding-left:5mm;text-align:justify;list-style:decimal}.ol li{margin-bottom:.6mm}
 .just2{text-align:justify}
 .mt{margin-top:6mm}
@@ -40,37 +42,30 @@
 .paper .dt.grid{width:88%}.paper .dt.grid td{padding:1mm 2mm}
 
 /* SPD */
-.spdt{font-size:10pt;line-height:1.2}.paper .spdt td{padding:.35mm 1.6mm}
+.spdt{line-height:1.2}.paper .spdt td{padding:.3mm 1.6mm}
 .spdt td.c-ab{border-right:none!important}
 .spdt td.c-ab+td{border-left:none!important}
-.crt{font-size:9pt;margin-top:.6mm}
+.crt{margin-top:.6mm}
 
 /* Lampiran */
-.lampt{font-size:10pt;line-height:1.2}.lampt>tbody>tr>td{padding:1mm 2mm}.lampt .tte-q{height:16mm}
+.lampt{line-height:1.12}.lampt>tbody>tr>td{padding:.6mm 2mm}
 .lampt .c-rn{width:9mm;text-align:center}.lampt .c-h{width:48%}
 .paper .kv3{width:100%}.paper .kv3 td{padding:.2mm 0;border:none;vertical-align:top}.paper .kv3 td:first-child{width:28mm;white-space:nowrap}
-.lampt>tbody>tr{height:21mm}.lampt>tbody>tr:nth-last-child(-n+2){height:auto}.lampt>tbody>tr:first-child{height:auto}
+.lampt>tbody>tr{height:16mm}.lampt>tbody>tr:nth-last-child(-n+2){height:auto}.lampt>tbody>tr:first-child{height:auto}
 
-/* ---------- Tanda tangan ---------- */
-.sgw{display:flex;flex-direction:column;align-items:flex-start;margin:5mm 0 0 38%}
-.sgw.r{margin:3mm 0 0 40%}
-.iss{margin-bottom:4mm}.iss td{padding:.2mm 0}.iss td:first-child{width:30mm}
-.tte{border:1px solid #000;padding:2.5mm 4mm 3mm;min-width:84mm;font-family:Arial,Helvetica,sans-serif;font-size:10pt;line-height:1.3}
-.tte-l{text-decoration:underline;margin-bottom:1mm}
+/* ---------- Tanda tangan (manual/basah: ruang tanda tangan dibiarkan kosong) ---------- */
+.sgw{display:flex;flex-direction:column;align-items:flex-start;margin:5mm 0 0 45%;break-inside:avoid}
+.sgw.r{margin:3mm 0 0 45%}
+.iss{margin-bottom:3mm}.iss td{padding:.2mm 0}.iss td:first-child{width:34mm}
 .tte-j{font-weight:700}
-.tte-q{height:18mm;display:flex;align-items:center;justify-content:flex-start;padding-left:2mm;font:9pt/1 Arial,sans-serif;color:#000}
 .tte-n{font-weight:700;text-decoration:underline}
-.tte.nb{border:none;padding:1mm 0 0;min-width:0;font-family:var(--serif);font-size:inherit}
-.sgb{min-width:70mm;text-align:center}.sgb.nb{text-align:left}.sg-sp{height:22mm}
-.lampt .sgb.nb,.lampt .tte.nb{text-align:left}
-
-/* Catatan kaki TTE */
-.dnote{margin-top:3mm;padding-top:1mm;border-top:1.6px solid #2f6fb4;font:7.4pt/1.3 Arial,Helvetica,sans-serif}
-.dnote b{font-size:9pt}.dnote ul{margin:.5mm 0 0;padding-left:4mm;list-style:disc}
+.sgb{min-width:70mm;text-align:center}.sgb.nb{text-align:left;min-width:0;margin-top:2mm}.sg-sp{height:24mm}
+.lampt .sgb.nb{margin-top:1mm}.lampt .sgb.nb .sg-sp{height:15mm}
+.lamp .kop2{margin-bottom:4mm}.lamp .sgw.r{margin-top:2mm}.lamp .sgw.r .sg-sp{height:20mm}
 
 /* ---------- Laporan (format Bandung) ---------- */
-.paper.lap{font:11pt/1.55 Arial,Helvetica,sans-serif}
-.lap h4{font-weight:700;margin:14px 0 4px;font-size:11pt}.lap h5{font-weight:700;margin:6px 0 2px 14px;font-size:11pt}
+.paper.lap{font:12pt/1.5 var(--sans)}
+.lap h4{font-weight:700;margin:14px 0 4px;font-size:12pt}.lap h5{font-weight:700;margin:6px 0 2px 14px;font-size:12pt}
 .lap .lt{text-align:center;font-weight:700;margin:6px 0 10px}
 .lap .just{text-align:justify;white-space:pre-wrap;margin:2px 0 6px 28px;text-indent:1.2cm}
 .lap .lo,.lo{list-style:decimal;margin:2px 0 6px 50px;padding:0;text-align:justify}.lo.ml18{margin-left:18px}
@@ -80,28 +75,27 @@
 
 /* ---------- Rincian biaya & kuitansi (v1.2) ---------- */
 .paper .rbh{width:auto;margin:5mm 0 3mm}.rbh td{padding:.4mm 0}.rbh .l1w{width:52mm}.rbh .l2{width:5mm}
-.rbt{font-size:10.5pt}.paper .rbt td{padding:1mm 2mm}.rbt .th td{font-weight:700}.rbt .num{text-align:right;white-space:nowrap}.rbt .c-jm{width:34mm}.rbt .c-kt{width:58mm}
-.sg2c,.sg3c{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:7mm;break-inside:avoid}.sg3c{grid-template-columns:1fr 1fr 1fr;gap:4mm;font-size:10.5pt;margin-top:12mm}
+.rbt{}.paper .rbt td{padding:1mm 2mm}.rbt .th td{font-weight:700}.rbt .num{text-align:right;white-space:nowrap}.rbt .c-jm{width:34mm}.rbt .c-kt{width:58mm}
+.sg2c,.sg3c{display:grid;grid-template-columns:1fr 1fr;gap:8mm;margin-top:7mm;break-inside:avoid}.sg3c{grid-template-columns:1fr 1fr 1fr;gap:4mm;margin-top:12mm}
 .wsg{margin-top:1mm}.wsg .sg-sp{height:20mm}
 .rbl{border-top:1px solid #000;margin:7mm 0 0}
-.paper .kwt{margin-top:6mm}.kwt td{padding:1.2mm 0}.kwt .l1w{width:42mm}.kwt .l2{width:5mm}.kwt .amt{font-weight:700;font-size:12pt}
+.paper .kwt{margin-top:6mm}.kwt td{padding:1.2mm 0}.kwt .l1w{width:42mm}.kwt .l2{width:5mm}.kwt .amt{font-weight:700}
 /* baris pengikut kosong pada SPD tetap setinggi satu baris */
 .spdt td:empty::after{content:'\00a0'}
 
 /* ---------- Rekap cetak ---------- */
-.paper.rk{font:10pt/1.4 Arial,sans-serif}.d-h{text-align:center;margin:10px 0;font-size:13pt}
+.paper.rk{font:12pt/1.4 var(--sans)}.d-h{text-align:center;margin:10px 0;font-size:12pt;font-weight:700}
 .paper.rk .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:10px 0}
-.paper.rk .kpi{border:1px solid #999;padding:8px;border-radius:4px;background:#fff;box-shadow:none;backdrop-filter:none}.paper.rk .kpi-v{font-size:16pt;font-weight:bold}.paper.rk .kpi-l{font-size:9pt}
+.paper.rk .kpi{border:1px solid #999;padding:8px;border-radius:4px;background:#fff;box-shadow:none;backdrop-filter:none}.paper.rk .kpi-v{font-size:12pt;font-weight:bold}.paper.rk .kpi-l{font-size:12pt}
 .paper.rk .dgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .paper.rk .card{border:1px solid #999;padding:8px;border-radius:4px;break-inside:avoid;margin-top:8px;background:#fff;box-shadow:none;backdrop-filter:none}
 .paper.rk .card-h{font-weight:bold;margin-bottom:4px}.paper.rk .card-t{display:block}
-.paper.rk .tbl{width:100%;font-size:9pt}.paper.rk .tbl th,.paper.rk .tbl td{border:1px solid #bbb;padding:2px 4px;text-align:left;background:#fff}
+.paper.rk .tbl{width:100%;font-size:12pt}.paper.rk .tbl th{font-size:12pt}.paper.rk .tbl th,.paper.rk .tbl td{border:1px solid #bbb;padding:2px 4px;text-align:left;background:#fff}
 .paper.rk .badge::before,.paper.rk .ci,.paper.rk .ico{display:none}
 
-/* Cetak: tinggi halaman tetap agar catatan TTE berada di bawah; nomor halaman untuk laporan */
+/* Cetak: nomor halaman untuk laporan */
 @media print{
-  #pa .paper.fx{min-height:268mm}
   #pa.pn .paper{page:pn}
-  @page pn{@top-right{content:counter(page);font:9pt Arial,sans-serif;color:#444}}
+  @page pn{@top-right{content:counter(page);font:12pt Arial,'Liberation Sans',sans-serif;color:#000}}
   @page pn:first{@top-right{content:none}}
 }

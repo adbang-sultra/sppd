@@ -1,18 +1,19 @@
 /* ============================================================
    DOKUMEN CETAK — mengikuti format contoh:
    - Kop surat model Executive Summary Setda Prov. Sultra (logo kiri, 3 baris, garis tebal)
-   - Surat Tugas, SPD, Lampiran SPD model "SPT_EDIT_BARCOD" (kotak TTE + penanda ${ttd})
-   Semua teks kop & tanda tangan dapat diubah di menu Pengaturan Instansi.
+   - Surat Tugas, SPD, Lampiran SPD model contoh SPT
+   - Tanda tangan manual (basah): ruang tanda tangan dibiarkan kosong, tanpa catatan kaki
+   - Seluruh isi dokumen Arial 12 pt, kecuali kop surat
+   Semua teks kop & penanda tangan dapat diubah di menu Pengaturan Instansi.
    ============================================================ */
 'use strict';
 const KOPDEF = {
   kop1:'PEMERINTAH PROVINSI SULAWESI TENGGARA', kop2:'SEKRETARIAT DAERAH',
   kop3:'Kompleks Bumi Praja Anduonohu Tlp. 391609 Fax (0401) 391614 Kendari 93232',
-  kopMode:'teks', kopImg:'', kota:'Kendari', ttdMode:'tte', ttdTag:'${ttd}', ttdLbl:'Ditandatangani secara elektronik oleh :',
-  ttdNote:"UU ITE No 11 Tahun 2008 Pasal 5 ayat 1 : 'Informasi Elektronik dan/atau Dokumen Elektronik dan/atau hasil cetaknya merupakan alat bukti hukum yang sah.'\nDokumen ini telah ditandatangani secara elektronik menggunakan sertifikat elektronik yang diterbitkan oleh Balai Besar Sertifikasi Elektronik (BSrE), Badan Siber dan Sandi Negara (BSSN)."
+  kopMode:'teks', kopImg:'', kota:'Kendari'
 };
 const KOPLOGO = 'assets/logo-sultra.png';
-const kc = k => { const v = D.cfg[k]; return v === undefined || v === null || (v === '' && !['kopImg', 'ttdTag'].includes(k)) ? KOPDEF[k] : v; };
+const kc = k => { const v = D.cfg[k]; return v === undefined || v === null || (v === '' && k !== 'kopImg') ? KOPDEF[k] : v; };
 
 /* Angka → terbilang (untuk "4 (empat) hari") */
 function terbilang(n) {
@@ -33,18 +34,16 @@ const kop = () => {
   return `<div class="kop2"><img class="kop2-l" src="${lg}" alt=""><div class="kop2-t"><div class="k1">${esc(kc('kop1'))}</div><div class="k2">${esc(kc('kop2'))}</div><div class="k3">${esc(kc('kop3'))}</div></div></div>`;
 };
 
-/* ---------- Tanda tangan ---------- */
-const isTTE = () => kc('ttdMode') === 'tte';
-const ttdTag = () => esc(D.cfg.ttdTag === undefined ? KOPDEF.ttdTag : D.cfg.ttdTag);
-/* blok tanda tangan penandatangan utama; box=true → kotak TTE seperti contoh */
-function sign(jab, nama, nip, box = true) {
-  jab = esc((jab || '').toUpperCase()); const nm = esc(nama || '...............................'), np = nip ? 'NIP. ' + esc(nip) : 'NIP.';
-  if (isTTE()) return `<div class="${box ? 'tte' : 'tte nb'}">${box ? `<div class="tte-l">${esc(kc('ttdLbl'))}</div>` : ''}<div class="tte-j">${jab}</div><div class="tte-q">${ttdTag()}</div><div class="tte-n">${nm}</div><div class="tte-p">${np}</div></div>`;
-  return `<div class="${box ? 'sgb' : 'sgb nb'}"><div class="tte-j">${jab},</div><div class="sg-sp"></div><div class="tte-n">${nm}</div><div class="tte-p">${np}</div></div>`;
+/* ---------- Tanda tangan (manual/basah) ---------- */
+const sgPk = p => p ? `<div class="tte-p">${esc(p)}</div>` : '';
+/* blok tanda tangan: jabatan, ruang kosong untuk tanda tangan basah, nama, pangkat (bila ada), NIP; box=false → rata kiri */
+function sign(jab, nama, nip, box = true, pk = '') {
+  jab = esc((jab || '').toUpperCase()); const nm = esc(nama || '...............................'), np = nip && nip !== '-' ? 'NIP. ' + esc(nip) : 'NIP.';
+  return `<div class="${box ? 'sgb' : 'sgb nb'}"><div class="tte-j">${jab},</div><div class="sg-sp"></div><div class="tte-n">${nm}</div>${sgPk(pk)}<div class="tte-p">${np}</div></div>`;
 }
+const signS = (sg, box) => sign(sg.jabatan, sg.nama, sg.nip, box, sg.pangkat);
 const issued = (tgl, cls = '') => `<table class="iss ${cls}"><tr><td>Dikeluarkan di</td><td>: ${esc(kc('kota'))}</td></tr><tr><td>Pada tanggal</td><td>: ${dts(tgl)}</td></tr></table>`;
-const note = () => isTTE() && kc('ttdNote') ? `<div class="dnote"><b>Catatan :</b><ul>${lines(kc('ttdNote')).map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>` : '';
-const page = (cls, body) => `<div class="paper fx ${cls}">${kop()}<div class="pbody">${body}</div>${note()}</div>`;
+const page = (cls, body) => `<div class="paper fx ${cls}">${kop()}<div class="pbody">${body}</div></div>`;
 
 /* ---------- Surat Tugas ---------- */
 function dST(s) {
@@ -55,7 +54,7 @@ function dST(s) {
   <table class="dt grid"><tr class="th"><td class="c-no">No.</td><td>Nama/NIP</td><td class="w40">Jabatan</td></tr>${P.map((p, i) => `<tr><td class="c-no">${i + 1}</td><td>${esc(p.nama)}${p.nip ? '<br>NIP. ' + esc(p.nip) : ''}</td><td>${esc(p.jabatan)}</td></tr>`).join('')}</table>
   <table class="lbl mt"><tr><td class="l1">Untuk</td><td class="l2">:</td><td class="just2">${esc(s.maksud)}${s.tujuan ? ' di ' + esc(s.tujuan) : ''}, selama ${n} (${cap(terbilang(n))}) Hari sejak tanggal ${s.tb && s.tk && s.tb.slice(0, 7) === s.tk.slice(0, 7) ? (+s.tb.slice(8)) + ' s/d ' + dts(s.tk) : dts(s.tb) + ' s/d ' + dts(s.tk)}.</td></tr></table>
   <p class="mt">Demikian Surat Tugas ini diberikan untuk dilaksanakan dengan penuh rasa tanggung jawab.</p>
-  <div class="sgw">${issued(s.stTgl || s.tgl)}${sign(sg.jabatan, sg.nama, sg.nip)}</div>`);
+  <div class="sgw">${issued(s.stTgl || s.tgl)}${signS(sg)}</div>`);
 }
 
 /* ---------- SPD (lembar depan) ---------- */
@@ -74,7 +73,7 @@ function dSPPD(s) {
   <tr><td class="c-no" rowspan="${fol.length + 1}">8.</td><td colspan="2">Pengikut : nama</td><td colspan="2" class="ctr">Keterangan</td></tr>${fol.map((f, i) => `<tr><td class="c-ab">${f.nama ? i + 1 : '&nbsp;'}</td><td>${esc(f.nama)}</td><td colspan="2">${esc(f.jabatan)}</td></tr>`).join('')}
   <tr><td class="c-no" rowspan="3">9</td><td colspan="2">Pembebanan Anggaran</td><td colspan="2">${esc(bd.sumber || '')}${bd.ta ? ' TA ' + esc(bd.ta) : ''}</td></tr><tr><td class="c-ab">a.</td><td>Instansi</td><td class="c-ab">a.</td><td>${esc(c.instansi)}</td></tr><tr><td class="c-ab">b.</td><td>Akun</td><td class="c-ab">b.</td><td>${esc(s.mata || bd.rek || '')}</td></tr>
   ${r1(10, 'Keterangan Lain-lain', esc(s.ket || ''))}</table><div class="crt">*Coret yang tidak perlu</div>
-  <div class="sgw">${issued(s.tgl)}${sign(sg.jabatan, sg.nama, sg.nip)}</div>`);
+  <div class="sgw">${issued(s.tgl)}${signS(sg)}</div>`);
 }
 
 /* ---------- Lampiran SPD (lembar belakang) ---------- */
@@ -83,18 +82,18 @@ function dLamp(s) {
   const tiba = (a = '', d = '') => L([['Tiba di', esc(a)], ['Pada Tanggal', d], ['Kepala', '']]);
   const brk = (a = '', b = '', d = '') => L([['Berangkat dari', esc(a)], ['Ke', esc(b)], ['Pada Tanggal', d], ['Kepala', '']]);
   return page('lamp', `<table class="dt lampt">
-  <tr><td class="c-rn">I</td><td class="c-h"></td><td class="c-h">${brk(s.asal, s.tujuan, dts(s.tb))}${sign(sg.jabatan, sg.nama, sg.nip, false)}</td></tr>
+  <tr><td class="c-rn">I</td><td class="c-h"></td><td class="c-h">${brk(s.asal, s.tujuan, dts(s.tb))}${signS(sg, false)}</td></tr>
   <tr><td class="c-rn">II</td><td>${tiba(s.tujuan, dts(s.tb))}</td><td>${brk(s.tujuan, s.asal, dts(s.tk))}</td></tr>
   <tr><td class="c-rn">III</td><td>${tiba()}</td><td>${brk()}</td></tr>
   <tr><td class="c-rn">IV</td><td>${tiba()}</td><td>${brk()}</td></tr>
   <tr><td class="c-rn">V</td><td>${tiba()}</td><td class="just2">Telah diperiksa dengan keterangan bahwa perjalanan tersebut diatas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.</td></tr>
   <tr><td class="c-rn">VI</td><td colspan="2">Catatan lain-lain :</td></tr>
   <tr><td></td><td colspan="2" class="just2">PERHATIAN:<br>PPK yang menerbitkan SPD, pegawai yang melakukan Perjalanan Dinas, Pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara. Apabila negara menderita rugi akibat kesalahan, kelalaian dan kealpaannya.</td></tr></table>
-  <div class="sgw r">${sign(sg.jabatan, sg.nama, sg.nip)}</div>`);
+  <div class="sgw r">${signS(sg)}</div>`);
 }
 
 /* ---------- Rincian Biaya Perjalanan Dinas & Kuitansi (tanda tangan basah) ---------- */
-const wet = (ttl, nama, nip) => `<div class="wsg"><div>${ttl}</div><div class="sg-sp"></div><div class="tte-n">${esc(nama || '...............................')}</div><div>${nip && nip !== '-' ? 'NIP. ' + esc(nip) : 'NIP.'}</div></div>`;
+const wet = (ttl, nama, nip, pk = '') => `<div class="wsg"><div>${ttl}</div><div class="sg-sp"></div><div class="tte-n">${esc(nama || '...............................')}</div>${sgPk(pk)}<div>${nip && nip !== '-' ? 'NIP. ' + esc(nip) : 'NIP.'}</div></div>`;
 const terbRp = n => cap(terbilang(n) || 'nol') + ' rupiah';
 function dBiaya(s) {
   const c = D.cfg, e = pegOf(s), B = s.biaya || [], tot = totB(s), ppk = signerOf(s, 'spdS');
@@ -107,7 +106,7 @@ function dBiaya(s) {
   <div class="sg2c"><div>&nbsp;<br>Telah dibayar sejumlah<br><b>${rupiah(tot)}</b>${wet('Bendahara Pengeluaran,', c.bendahara, c.nipBend)}</div><div>${esc(kc('kota'))}, ${dts(s.tgl)}<br>Telah menerima jumlah uang sebesar<br><b>${rupiah(tot)}</b>${wet('Yang Menerima,', e.nama, e.nip)}</div></div>
   <div class="rbl"></div><div class="ttl3">PERHITUNGAN SPD RAMPUNG</div>
   <table class="lbl rbh"><tr><td class="l1w">Ditetapkan sejumlah</td><td class="l2">:</td><td>${rupiah(tot)}</td></tr><tr><td>Yang telah dibayar semula</td><td>:</td><td>${rupiah(tot)}</td></tr><tr><td>Sisa kurang/lebih</td><td>:</td><td>${rupiah(0)}</td></tr></table>
-  <div class="sg2c"><div></div><div>${wet(esc(ppk.jabatan || 'Pejabat Pembuat Komitmen') + ',', ppk.nama, ppk.nip)}</div></div></div>`;
+  <div class="sg2c"><div></div><div>${wet(esc(ppk.jabatan || 'Pejabat Pembuat Komitmen') + ',', ppk.nama, ppk.nip, ppk.pangkat)}</div></div></div>`;
 }
 function dKwit(s) {
   const c = D.cfg, e = pegOf(s), bd = s.bud || {}, tot = totB(s), ppk = signerOf(s, 'spdS'), n = lama(s.tb, s.tk);
@@ -115,7 +114,7 @@ function dKwit(s) {
   <table class="lbl kwt"><tr><td class="l1w">Tahun Anggaran</td><td class="l2">:</td><td>${esc(bd.ta || c.ta)}</td></tr><tr><td>Kode Rekening</td><td>:</td><td>${esc(s.mata || bd.rek || '')}</td></tr>
   <tr><td>Sudah terima dari</td><td>:</td><td>Bendahara Pengeluaran ${esc(c.instansi)}</td></tr><tr><td>Uang sebesar</td><td>:</td><td class="amt">${rupiah(tot)}</td></tr><tr><td>Terbilang</td><td>:</td><td><i>${esc(terbRp(tot))}</i></td></tr>
   <tr><td>Untuk pembayaran</td><td>:</td><td class="just2">Biaya perjalanan dinas dalam rangka ${esc(s.maksud)}${s.tujuan ? ' di ' + esc(s.tujuan) : ''} selama ${hari(n)}, tanggal ${dts(s.tb)} s/d ${dts(s.tk)}, sesuai SPD Nomor ${esc(s.no)} tanggal ${dts(s.tgl)}.</td></tr></table>
-  <div class="sg3c"><div>Setuju dibayar,${wet(esc(ppk.jabatan || 'Pejabat Pembuat Komitmen') + ',', ppk.nama, ppk.nip)}</div><div>Lunas dibayar,${wet('Bendahara Pengeluaran,', c.bendahara, c.nipBend)}</div><div>${esc(kc('kota'))}, ${dts(s.tgl)}${wet('Yang menerima,', e.nama, e.nip)}</div></div></div>`;
+  <div class="sg3c"><div>Setuju dibayar,${wet(esc(ppk.jabatan || 'Pejabat Pembuat Komitmen') + ',', ppk.nama, ppk.nip, ppk.pangkat)}</div><div>Lunas dibayar,${wet('Bendahara Pengeluaran,', c.bendahara, c.nipBend)}</div><div>${esc(kc('kota'))}, ${dts(s.tgl)}${wet('Yang menerima,', e.nama, e.nip)}</div></div></div>`;
 }
 const hasB = s => (s.biaya || []).length > 0;
 const docs = (s, v) => v === 'st' ? dST(s) : v === 'sppd' ? dSPPD(s) : v === 'lamp' ? dLamp(s) : v === 'biaya' ? dBiaya(s) + dKwit(s) : v === 'lap' ? dLap(s) : dST(s) + dSPPD(s) + dLamp(s) + (hasB(s) ? dBiaya(s) + dKwit(s) : '') + dLap(s);

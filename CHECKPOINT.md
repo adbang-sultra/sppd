@@ -20,3 +20,10 @@
 - [x] Kolom tanggal (form SPPD, laporan, filter): pemilih kalender bisa dipakai — `all:unset` pada `.in` merusak tampilan bawaan `type=date`; CSS dipulihkan (appearance, color-scheme gelap/terang) + klik di mana pun pada kolom membuka kalender (`showPicker`)
 - [x] Penyimpanan ke database: perubahan dikirim ke server lebih cepat (120 ms), dikirim paksa saat tab disembunyikan/ditutup, dan ada peringatan penutupan tab bila masih ada yang belum terkirim; mode lokal kini diberi penanda merah + notifikasi "BELUM tersimpan di database"
 - [ ] Hubungkan ke Supabase: isi `SYNC.url` & `SYNC.anonKey` di js/config.js (tanpa ini aplikasi tetap mode lokal)
+
+## Perbaikan v1.2.3 (13 Nov 2026)
+- [x] Pengaturan Instansi & Tampilan & Tema: bilah tombol Simpan tidak lagi melebar menutupi isi halaman (kartu `sticky-act` meregang setinggi baris grid). Kini satu baris penuh di bawah, tetap menempel di bawah layar.
+- [x] Form SPPD: nomor SPPD diketik manual — tombol "Auto" & penomoran otomatis dihapus (keunikan nomor tetap dicek, juga di server pada mode cloud). Kolom "Awalan Nomor SPPD" di Pengaturan dihapus.
+- [x] Data Kepala OPD (Pengaturan Instansi): jabatan, nama, pangkat/gol., NIP. Bisa dipilih sebagai penanda tangan Surat Tugas / SPD per SPPD (kelompok "Kepala OPD" di pilihan penanda tangan). Pangkat penanda tangan ikut tercetak bila diisi.
+- [x] Cetak & Word: tanda tangan manual (ruang kosong, tanpa kotak TTE/`${ttd}`), catatan kaki dihapus, seluruh isi Arial 12 pt kecuali kop; Lampiran SPD & SPD tetap satu halaman A4.
+- [x] tests/run-local.js: 39 pemeriksaan lulus (termasuk uji baru tata letak, Kepala OPD, font, tanpa TTE). tests/run-cloud.js disesuaikan (nomor manual) tetapi belum dijalankan ulang.

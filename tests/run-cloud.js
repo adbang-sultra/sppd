@@ -46,11 +46,11 @@ const rpc = (fn, body, ip) => fetch(U + 'rest/v1/rpc/' + fn, {method:'POST', hea
   ok((await A.evaluate(ada)) === (await B.evaluate(ada)), 'hapus vs ubah bersamaan: kedua perangkat berakhir pada keadaan yang sama', 'data ' + ((await A.evaluate(ada)) ? 'dipertahankan' : 'terhapus'));
 
   console.log('\n[4] Nomor SPPD unik antarperangkat');
-  const form = async (P, tb = '2027-03-01', no) => { await P.evaluate(() => go('form')); await P.waitForSelector('#s_no'); if (no) await P.fill('#s_no', no); else { await P.click('[data-act="numAuto"]'); await until(P, () => $('#s_no').value); } await P.selectOption('#s_emp', {index:1}); await P.fill('#s_maksud', 'Uji nomor'); await P.fill('#s_tujuan', 'Bandung'); await P.fill('#s_tb', tb); await P.fill('#s_tk', tb); return P.inputValue('#s_no'); };
-  const nA = await form(A), nB = await form(B, '2027-04-01'); await A.click('#mok'); await until(A, () => !$('#mod').innerHTML); await B.click('#mok'); await sleep(1500);
+  const form = async (P, tb = '2027-03-01', no) => { await P.evaluate(() => go('form')); await P.waitForSelector('#s_no'); await P.fill('#s_no', no); await P.selectOption('#s_emp', {index:1}); await P.fill('#s_maksud', 'Uji nomor'); await P.fill('#s_tujuan', 'Bandung'); await P.fill('#s_tb', tb); await P.fill('#s_tk', tb); return P.inputValue('#s_no'); };
+  const nA = await form(A, '2027-03-01', '900/UJI/2027'), nB = await form(B, '2027-04-01', '900/UJI/2027'); await A.click('#mok'); await until(A, () => !$('#mod').innerHTML); await B.click('#mok'); await sleep(1500);
   ok(nA === nB && await B.evaluate(() => !!$('#mod').innerHTML) && /baru saja dipakai/.test((await B.evaluate(() => __t)).join()), 'dua perangkat mendapat nomor sama → penyimpan kedua ditolak server', nA + ' / ' + nB);
-  await B.click('[data-act="numAuto"]'); await until(B, n => $('#s_no').value && $('#s_no').value !== n, nA); const nB2 = await B.inputValue('#s_no'); await B.click('#mok'); await until(B, () => !$('#mod').innerHTML);
-  ok(nB2 !== nA && await until(A, () => new Set(D.sppd.map(s => s.no)).size === 3 && D.sppd.length === 3), 'setelah klik Auto lagi: nomor berikutnya, tidak ada nomor kembar', nB2);
+  await B.fill('#s_no', '901/UJI/2027'); const nB2 = await B.inputValue('#s_no'); await B.click('#mok'); await until(B, () => !$('#mod').innerHTML);
+  ok(nB2 !== nA && await until(A, () => new Set(D.sppd.map(s => s.no)).size === 3 && D.sppd.length === 3), 'setelah nomor diganti manual: tersimpan, tidak ada nomor kembar', nB2);
 
   console.log('\n[5] Offline');
   await ctl('?fail=1');
