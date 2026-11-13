@@ -7,7 +7,7 @@
    - mode        : 'dark' | 'light' | 'auto' (ikut perangkat)
    - icons       : ikon menu khusus, contoh { dash:{t:'svg',v:'home'}, emp:{t:'txt',v:'👥'} }
    ============================================================ */
-const APP_VER = '1.2';
+const APP_VER = '1.2.4';
 
 const BRAND = {
   appName: 'SIM Pegawai & SPPD',
@@ -49,6 +49,6 @@ const PRESETS = {
    Kosongkan keduanya untuk mode lokal (data hanya di browser ini).
    ============================================================ */
 const SYNC = {
-  url: 'https://wvzvpcddtpzkmlgxgdtk.supabase.co',
-  anonKey: 'sb_publishable_m3H7cayGw4750WmvrQaV8w_4hiUWY-F'
+  url: '',
+  anonKey: ''
 };

@@ -7,12 +7,23 @@ const lines = t => String(t || '').split('\n').map(x => x.trim()).filter(Boolean
 const ol = t => { const a = lines(t); return a.length ? `<ol class="lo">${a.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : '<div class="blank"></div>'; };
 const pj = t => String(t || '').trim() ? `<div class="just">${esc(t)}</div>` : '<div class="blank"></div>';
 const h4 = t => `<h4>${t}</h4>`, h5 = (l, t) => `<h5>${l}. ${t}</h5>`;
-const petugas = s => { const e = pegOf(s); return [{nama:e.nama, nip:e.nip, jabatan:e.jabatan}, ...(s.fol || []).map(f => ({nama:f.nama, nip:f.nip, jabatan:f.jabatan}))].filter(p => p.nama); };
+const pgk = (p, g) => [p, g ? 'Gol. ' + g : ''].filter(Boolean).join(', ');
+/* daftar petugas (pegawai + pengikut) dengan pangkat/golongan; pangkat pengikut diambil dari data pegawai lewat NIP */
+const petugas = s => { const e = pegOf(s), byNip = n => (n && D.emp.find(x => x.nip === n)) || {};
+  return [{nama:e.nama, nip:e.nip, jabatan:e.jabatan, pg:pgk(e.pangkat, e.gol)}, ...(s.fol || []).map(f => { const m = byNip(f.nip); return {nama:f.nama, nip:f.nip, jabatan:f.jabatan || m.jabatan, pg:pgk(m.pangkat, f.gol || m.gol)}; })].filter(p => p.nama); };
+/* NIP 18 digit ditulis berkelompok seperti surat resmi: 19940702 202504 2 006 */
+const fmtNip = n => { const d = String(n || '').replace(/\s+/g, ''); return /^\d{18}$/.test(d) ? `${d.slice(0, 8)} ${d.slice(8, 14)} ${d.slice(14, 15)} ${d.slice(15)}` : String(n || ''); };
+/* "Untuk" pada Surat Tugas: baris pertama Maksud = uraian; baris berikutnya = daftar bernomor (mis. OPD yang dikunjungi) */
+const untuk = s => { const L = String(s.maksud || '').split('\n').map(x => x.trim()).filter(Boolean), head = L[0] || '';
+  return {head:L.length > 1 ? head : head + (s.tujuan && !/\bdi\s/i.test(head) ? ' di ' + s.tujuan : '') + (/[.:]$/.test(head) ? '' : '.'), items:L.slice(1).map(x => x.replace(/^\d+[.)]\s*/, ''))}; };
+/* Maksud dalam satu paragraf (untuk SPD & laporan): "uraian: A, B, C" */
+const maksud1 = s => { const L = String(s.maksud || '').split('\n').map(x => x.trim().replace(/^\d+[.)]\s*/, '')).filter(Boolean); return L.length > 1 ? L[0] + (/:$/.test(L[0]) ? ' ' : ': ') + L.slice(1).join(', ') : L[0] || ''; };
+const perST = s => s.tb && s.tk && s.tb.slice(0, 7) === s.tk.slice(0, 7) ? (+s.tb.slice(8)) + ' s/d ' + dts(s.tk) : dts(s.tb) + ' s/d ' + dts(s.tk);
 function fitPaper() { const w = ($('#main')?.clientWidth || innerWidth) - (innerWidth < 640 ? 20 : 48); document.documentElement.style.setProperty('--pz', Math.max(.3, Math.min(1, w / 800)).toFixed(3)); }
 addEventListener('resize', fitPaper);
 
 function dLap(s) {
-  const c = D.cfg, r = D.rep.find(x => x.sppdId === s.id) || {}, P = petugas(s), ttl = '<div class="lt">LAPORAN HASIL PERJALANAN DINAS<br>' + esc((s.maksud || '').toUpperCase()) + '</div>';
+  const c = D.cfg, r = D.rep.find(x => x.sppdId === s.id) || {}, P = petugas(s), ttl = '<div class="lt">LAPORAN HASIL PERJALANAN DINAS<br>' + esc(maksud1(s).toUpperCase()) + '</div>';
   const wkt = r.wkt || `Kegiatan dilaksanakan pada tanggal ${dts(s.tb)} s.d ${dts(s.tk)} di ${s.tujuan || '-'}${s.inst ? ' (' + s.inst + ')' : ''}.`;
   const dasar = [...(s.stNo ? [`Surat Tugas ${signerOf(s, 'stS').jabatan || c.jabatan} Nomor ${s.stNo}${s.stTgl ? ' tanggal ' + dts(s.stTgl) : ''}`] : []), `Surat Perintah Perjalanan Dinas Nomor ${s.no}`, ...lines(r.dasar)].join('\n');
   const keg = r.keg || `${dt(s.tb)} berangkat dari ${s.asal || '-'} ke ${s.tujuan}\n${dt(s.tk)} kembali ke ${s.asal || '-'}`;

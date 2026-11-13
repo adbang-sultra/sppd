@@ -27,3 +27,11 @@
 - [x] Data Kepala OPD (Pengaturan Instansi): jabatan, nama, pangkat/gol., NIP. Bisa dipilih sebagai penanda tangan Surat Tugas / SPD per SPPD (kelompok "Kepala OPD" di pilihan penanda tangan). Pangkat penanda tangan ikut tercetak bila diisi.
 - [x] Cetak & Word: tanda tangan manual (ruang kosong, tanpa kotak TTE/`${ttd}`), catatan kaki dihapus, seluruh isi Arial 12 pt kecuali kop; Lampiran SPD & SPD tetap satu halaman A4.
 - [x] tests/run-local.js: 39 pemeriksaan lulus (termasuk uji baru tata letak, Kepala OPD, font, tanpa TTE). tests/run-cloud.js disesuaikan (nomor manual) tetapi belum dijalankan ulang.
+
+## Perbaikan v1.2.4 (13 Nov 2026)
+- [x] Cloud selalu terhubung: perubahan sendiri tetap dikirim seketika; perubahan dari perangkat lain kini diambil tiap 3 detik selama aplikasi terbuka (sebelumnya 15 detik), dan seketika saat pindah menu, kembali ke tab/jendela, atau internet tersambung lagi. Gagal → jeda bertahap lalu coba lagi otomatis. Tombol "Sinkron sekarang" dihapus; status "Terhubung".
+- [x] Surat Tugas mengikuti contoh SPT_11_s.d_12_Nov_2026.pdf: "SURAT TUGAS" bergaris bawah, "Nomor :", Dasar, jabatan pemberi tugas di tengah, "MENUGASKAN:", Kepada (Nama/Jabatan/NIP berkelompok/Pangkat-Gol per orang), Selama, Untuk (baris berikutnya pada Maksud → daftar bernomor), penutup menjorok, "Kendari, <tanggal>".
+- [x] Blok tanda tangan semua dokumen: rata kiri di kolom kanan (mulai ±42% lebar), seperti contoh — jabatan tidak lagi di tengah.
+- [x] Form SPPD: "Maksud Perjalanan" jadi kotak teks multi-baris (maks 1000 karakter). Di SPD & judul laporan ditulis satu paragraf.
+- [x] SPD: lebar kolom dikunci agar tetap satu halaman walau maksud panjang. Word: margin atas 2450 / bawah 1000 twip; ST, SPD, Lampiran masing-masing 1 halaman (dicek LibreOffice).
+- [x] tests/run-local.js 39 lulus. Pengambilan data 3 detik belum diuji dengan Supabase sungguhan.

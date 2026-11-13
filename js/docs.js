@@ -47,14 +47,17 @@ const page = (cls, body) => `<div class="paper fx ${cls}">${kop()}<div class="pb
 
 /* ---------- Surat Tugas ---------- */
 function dST(s) {
-  const c = D.cfg, P = petugas(s), n = lama(s.tb, s.tk), ds = String(s.dasar || '').split(/;|\n/).map(x => x.trim()).filter(Boolean), sg = signerOf(s, 'stS');
-  return page('st', `<div class="ttl1">SURAT TUGAS</div><div class="ttl2">NOMOR : ${esc(s.stNo || '...............................')}</div>
-  <table class="lbl"><tr><td class="l1">Dasar</td><td class="l2">:</td><td>${ds.length ? `<ol class="ol">${ds.map(x => `<li>${esc(x)}</li>`).join('')}</ol>` : '-'}</td></tr></table>
-  <div class="ttl3">MENUGASKAN :</div>
-  <table class="dt grid"><tr class="th"><td class="c-no">No.</td><td>Nama/NIP</td><td class="w40">Jabatan</td></tr>${P.map((p, i) => `<tr><td class="c-no">${i + 1}</td><td>${esc(p.nama)}${p.nip ? '<br>NIP. ' + esc(p.nip) : ''}</td><td>${esc(p.jabatan)}</td></tr>`).join('')}</table>
-  <table class="lbl mt"><tr><td class="l1">Untuk</td><td class="l2">:</td><td class="just2">${esc(s.maksud)}${s.tujuan ? ' di ' + esc(s.tujuan) : ''}, selama ${n} (${cap(terbilang(n))}) Hari sejak tanggal ${s.tb && s.tk && s.tb.slice(0, 7) === s.tk.slice(0, 7) ? (+s.tb.slice(8)) + ' s/d ' + dts(s.tk) : dts(s.tb) + ' s/d ' + dts(s.tk)}.</td></tr></table>
-  <p class="mt">Demikian Surat Tugas ini diberikan untuk dilaksanakan dengan penuh rasa tanggung jawab.</p>
-  <div class="sgw">${issued(s.stTgl || s.tgl)}${signS(sg)}</div>`);
+  const P = petugas(s), n = lama(s.tb, s.tk), ds = String(s.dasar || '').split(/;|\n/).map(x => x.trim()).filter(Boolean), sg = signerOf(s, 'stS'), U = untuk(s);
+  const ol = a => `<ol class="ol">${a.map(x => `<li>${esc(x)}</li>`).join('')}</ol>`, kv = (a, b) => `<tr><td class="k1">${a}</td><td>: ${esc(b || '-')}</td></tr>`;
+  const row = (l, v, cls = '') => `<tr><td class="l1">${l}</td><td class="l2">:</td><td class="${cls}">${v}</td></tr>`;
+  return page('st', `<div class="st-t">SURAT TUGAS</div><div class="st-n">Nomor : ${esc(s.stNo || '...............................')}</div>
+  <table class="lbl st-l">${row('Dasar', ds.length > 1 ? ol(ds) : esc(ds[0] || '-'), 'just2')}</table>
+  <div class="st-j">${esc((sg.jabatan || '').toUpperCase())}</div><div class="st-m">MENUGASKAN:</div>
+  <table class="lbl st-l">${row('Kepada', P.map(p => `<table class="st-p">${kv('Nama', p.nama)}${kv('Jabatan', p.jabatan)}${kv('NIP', fmtNip(p.nip))}${kv('Pangkat/Gol', p.pg)}</table>`).join(''))}
+  ${row('Selama', `${n} (${terbilang(n).toLowerCase()}) hari dari tanggal ${perST(s)}.`)}
+  ${row('Untuk', esc(U.head) + (U.items.length ? ol(U.items) : ''), 'just2')}</table>
+  <p class="st-d">Demikian Surat Tugas ini dibuat untuk dilaksanakan dengan penuh rasa tanggung jawab.</p>
+  <div class="sgw st-s"><div class="st-k">${esc(kc('kota'))}, ${dts(s.stTgl || s.tgl)}</div>${signS(sg)}</div>`);
 }
 
 /* ---------- SPD (lembar depan) ---------- */
@@ -65,9 +68,9 @@ function dSPPD(s) {
   const fol = F.length ? F : [{}, {}];
   return page('spd', `<table class="lbl lbr"><tr><td>Lembar ke</td><td>: 1</td></tr><tr><td>Kode No</td><td>: </td></tr><tr><td>Nomor</td><td>: ${esc(s.no)}</td></tr></table>
   <div class="ttl1 u">SURAT PERJALANAN DINAS (SPD)</div>
-  <table class="dt spdt">${r1(1, 'Pejabat Pembuat Komitmen', '<b>' + esc(s.pejabat || c.jabatan) + '</b>')}${r1(2, 'Nama Pegawai Yang di Perintah', esc(e.nama))}
+  <table class="dt spdt"><colgroup><col class="cw-no"><col class="cw-ab"><col class="cw-l"><col class="cw-ab"><col></colgroup>${r1(1, 'Pejabat Pembuat Komitmen', '<b>' + esc(s.pejabat || c.jabatan) + '</b>')}${r1(2, 'Nama Pegawai Yang di Perintah', esc(e.nama))}
   ${ab(3, [['Pangkat dan Golongan', esc(e.pangkat) + (e.gol ? ' Gol. ' + esc(e.gol) : '')], ['Jabatan', esc(e.jabatan)], ['Tingkat Biaya Perjalanan Dinas', esc(s.tingkat || '')]])}
-  ${r1(4, 'Maksud Perjalanan Dinas', esc(s.maksud))}${r1(5, 'Alat Angkut yang dipergunakan', esc(s.alat))}
+  ${r1(4, 'Maksud Perjalanan Dinas', esc(maksud1(s)))}${r1(5, 'Alat Angkut yang dipergunakan', esc(s.alat))}
   ${ab(6, [['Tempat Berangkat', esc(s.asal)], ['Tempat Tujuan', esc(s.tujuan) + (s.inst ? ' (' + esc(s.inst) + ')' : '')]])}
   ${ab(7, [['Lamanya Perjalanan Dinas', hari(n)], ['Tanggal berangkat', dts(s.tb)], ['Tanggal Harus Kembali', dts(s.tk)]])}
   <tr><td class="c-no" rowspan="${fol.length + 1}">8.</td><td colspan="2">Pengikut : nama</td><td colspan="2" class="ctr">Keterangan</td></tr>${fol.map((f, i) => `<tr><td class="c-ab">${f.nama ? i + 1 : '&nbsp;'}</td><td>${esc(f.nama)}</td><td colspan="2">${esc(f.jabatan)}</td></tr>`).join('')}

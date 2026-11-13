@@ -179,9 +179,13 @@ const Cloud = (() => {
     }
     return ch;
   }
+  /* satu pengambilan pada satu waktu: panggilan bersamaan (timer, pindah menu, fokus) memakai hasil yang sama */
+  let pulling = null;
   async function pull(force) {
     if (!TOK || (!force && (busy || Q.size))) return false;
-    const ch = await pullPages(); if (!Q.size && !busy) setState('ok'); return ch;
+    if (pulling) return pulling;
+    pulling = (async () => { try { const ch = await pullPages(); if (!Q.size && !busy) setState('ok'); return ch; } finally { pulling = null; } })();
+    return pulling;
   }
   async function reload() {
     Store.wipeMemory(); snap.clear(); kv.clear(); logB.clear(); late.clear(); ACL = []; VER = 0;
@@ -209,16 +213,28 @@ const Cloud = (() => {
     if (notes.length) toast(notes.slice(0, 2).join(' · '), 'err');
     return n;
   }
-  function loop() {
-    clearInterval(timer);
-    timer = setInterval(async () => { if (!TOK || document.hidden) return; try { if (Q.size || logDirty.size) await flush(); else if (await pull()) changed(); } catch (e) { if (e.sess) Auth.logout('Sesi cloud berakhir, silakan masuk lagi'); else setState(e.net ? 'off' : 'err', e.message); } }, 15000);
+  /* Selalu terhubung: perubahan sendiri dikirim seketika (queue → flush), perubahan dari perangkat lain
+     diambil tiap ${LIVE} ms selama aplikasi terbuka, dan seketika saat pindah menu / kembali ke tab / online lagi.
+     Bila gagal (sinyal putus), jeda bertahap lalu otomatis mencoba lagi — tidak perlu tombol sinkron. */
+  const LIVE = 3000; let skip = 0;
+  async function tick() {
+    if (!TOK || document.hidden) return;
+    try { if (Q.size || logDirty.size) await flush(); else if (await pull()) changed(); skip = 0; }
+    catch (e) { if (e.sess) return Auth.logout('Sesi cloud berakhir, silakan masuk lagi'); setState(e.net ? 'off' : 'err', e.message); skip = Math.min(10, skip ? skip * 2 : 2); }
   }
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && TOK) pull().then(c => c && changed()).catch(() => {}); });
+  function loop() {
+    clearInterval(timer); let n = 0;
+    timer = setInterval(() => { if (skip && ++n < skip) return; n = 0; tick(); }, LIVE);
+  }
+  const now = () => { if (TOK && !document.hidden) { skip = 0; tick(); } };
+  document.addEventListener('visibilitychange', now);
+  addEventListener('focus', now);
+  addEventListener('hashchange', now);
   /* Jangan sampai ada perubahan yang tertinggal saat tab disembunyikan/ditutup: kirim segera, dan beri peringatan bila belum selesai */
   document.addEventListener('visibilitychange', () => { if (document.hidden && TOK && (Q.size || logDirty.size)) flush().catch(() => {}); });
   addEventListener('pagehide', () => { if (TOK && (Q.size || logDirty.size || busy)) flush().catch(() => {}); });
   addEventListener('beforeunload', e => { if (TOK && (Q.size || logDirty.size || busy || state === 'sync')) { e.preventDefault(); e.returnValue = ''; } });
-  addEventListener('online', () => { if (TOK) flush().then(() => pull()).then(c => c && changed()).catch(() => {}); });
+  addEventListener('online', now);
   const noHash = s => sha256hex('sppd-no:' + String(s).trim().toLowerCase().replace(/\s+/g, ' '));
 
   return {

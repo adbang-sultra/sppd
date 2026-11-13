@@ -30,6 +30,17 @@
 .ttl1{text-align:center;font-weight:700;margin-top:2mm}.ttl1.u{text-decoration:underline;margin:4mm 0 3mm}
 .ttl2{text-align:center;margin-bottom:7mm}
 .ttl3{text-align:center;font-weight:700;margin:6mm 0 3mm}
+/* Surat Tugas — mengikuti contoh SPT (Kepada: Nama/Jabatan/NIP/Pangkat per orang, lalu Selama, Untuk) */
+.paper.st .pbody{line-height:1.18}
+.st-t{text-align:center;font-weight:700;text-decoration:underline;margin-top:1mm}
+.st-n{text-align:center;margin-bottom:5mm}
+.st-j{text-align:center;font-weight:700;margin:3mm 0 3mm}
+.st-m{text-align:center;margin-bottom:4mm}
+.paper .st-l>tbody>tr>td{padding:0 0 3mm}
+.st-l .ol{padding-left:6mm}.paper .st-l .ol li{margin-bottom:0}
+.st-p{margin-bottom:3.5mm}.st-p:last-child{margin-bottom:0}.paper .st-p td{padding:0;vertical-align:top}.st-p td.k1{width:30mm}
+.st-d{text-indent:12mm;text-align:justify;margin-top:2mm}
+.sgw.st-s{margin-top:5mm}.st-s .sg-sp{height:22mm}
 .lbl{width:100%}.lbl td{vertical-align:top;padding:.4mm 0}.lbl .l1{width:22mm}.lbl .l2{width:5mm}
 .lbl.lbr{width:auto;margin:0 0 0 55%}.lbl.lbr td:first-child{padding-right:3mm}
 .ol{margin:0;padding-left:5mm;text-align:justify;list-style:decimal}.ol li{margin-bottom:.6mm}
@@ -42,7 +53,8 @@
 .paper .dt.grid{width:88%}.paper .dt.grid td{padding:1mm 2mm}
 
 /* SPD */
-.spdt{line-height:1.2}.paper .spdt td{padding:.3mm 1.6mm}
+.spdt{line-height:1.2;table-layout:fixed}.spdt .cw-no{width:8mm}.spdt .cw-ab{width:6mm}.spdt .cw-l{width:60mm}
+.spd .kop2{margin-bottom:3mm}.spd .lbl.lbr td{padding:0}.spd .spdt{line-height:1.12}.spd .crt{margin-top:.3mm}.spd .sgw{margin-top:2mm}.spd .iss{margin-bottom:2mm}.spd .sg-sp{height:20mm}.spd .ttl1.u{margin:3mm 0 2mm}.paper .spdt td{padding:.3mm 1.6mm}
 .spdt td.c-ab{border-right:none!important}
 .spdt td.c-ab+td{border-left:none!important}
 .crt{margin-top:.6mm}
@@ -54,12 +66,13 @@
 .lampt>tbody>tr{height:16mm}.lampt>tbody>tr:nth-last-child(-n+2){height:auto}.lampt>tbody>tr:first-child{height:auto}
 
 /* ---------- Tanda tangan (manual/basah: ruang tanda tangan dibiarkan kosong) ---------- */
-.sgw{display:flex;flex-direction:column;align-items:flex-start;margin:5mm 0 0 45%;break-inside:avoid}
-.sgw.r{margin:3mm 0 0 45%}
+.sgw{display:flex;flex-direction:column;align-items:flex-start;margin:5mm 0 0 42%;break-inside:avoid}
+.sgw.r{margin:3mm 0 0 42%}
 .iss{margin-bottom:3mm}.iss td{padding:.2mm 0}.iss td:first-child{width:34mm}
 .tte-j{font-weight:700}
 .tte-n{font-weight:700;text-decoration:underline}
-.sgb{min-width:70mm;text-align:center}.sgb.nb{text-align:left;min-width:0;margin-top:2mm}.sg-sp{height:24mm}
+/* blok tanda tangan rata kiri di kolom kanan, seperti contoh Surat Tugas */
+.sgb{text-align:left}.sgb.nb{margin-top:2mm}.sg-sp{height:24mm}
 .lampt .sgb.nb{margin-top:1mm}.lampt .sgb.nb .sg-sp{height:15mm}
 .lamp .kop2{margin-bottom:4mm}.lamp .sgw.r{margin-top:2mm}.lamp .sgw.r .sg-sp{height:20mm}
 

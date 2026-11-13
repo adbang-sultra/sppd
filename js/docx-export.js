@@ -63,29 +63,34 @@ async function buildDocx(s, v) {
   /* ----- Tanda tangan ----- */
   const SG = signerOf(s, 'spdS');
   /* tanda tangan basah: jabatan, ruang kosong, nama, pangkat (bila ada), NIP */
-  const signParas = (box, sg = SG, gap = box ? 1300 : 1000) => { const al = box ? 'c' : 'l', nip = sg.nip && sg.nip !== '-' ? 'NIP. ' + sg.nip : 'NIP.';
+  const signParas = (box, sg = SG, gap = box ? 1300 : 1000) => { const al = 'l', nip = sg.nip && sg.nip !== '-' ? 'NIP. ' + sg.nip : 'NIP.';
     return [P((sg.jabatan || '').toUpperCase() + ',', {b:1, al}), sp(gap), P([R(sg.nama || '..............................', {b:1, u:1})], {al}), ...(sg.pangkat ? [P(sg.pangkat, {al})] : []), P(nip, {al})]; };
-  const signBox = (sg, gap) => T([[C(signParas(true, sg, gap), {w:4800, nb:1})]], [4800], {nb:1});
-  const issuedT = tgl => T([[C('Dikeluarkan di', {w:1700, nb:1, ml:0}), C(': ' + kc('kota'), {w:3100, nb:1})], [C('Pada tanggal', {w:1700, nb:1, ml:0}), C(': ' + dts(tgl), {w:3100, nb:1})]], [1700, 3100], {nb:1});
-  const signArea = (tgl, sg = SG, gap) => T([[C('', {w:CW - 4900, nb:1}), C([...(tgl ? [issuedT(tgl), sp(160)] : []), signBox(sg, gap)], {w:4900, nb:1, ml:0})]], [CW - 4900, 4900], {nb:1});
+  const SL = Math.round(CW * .40), SR = CW - SL;                       /* blok tanda tangan: kolom kanan, rata kiri (seperti contoh SPT) */
+  const signBox = (sg, gap) => T([[C(signParas(true, sg, gap), {w:SR, nb:1, ml:0})]], [SR], {nb:1});
+  const issuedT = tgl => T([[C('Dikeluarkan di', {w:1900, nb:1, ml:0}), C(': ' + kc('kota'), {w:2900, nb:1})], [C('Pada tanggal', {w:1900, nb:1, ml:0}), C(': ' + dts(tgl), {w:2900, nb:1})]], [1900, 2900], {nb:1});
+  const signArea = (tgl, sg = SG, gap, place) => T([[C('', {w:SL, nb:1}), C([...(place ? [P(kc('kota') + ', ' + dts(tgl), {af:0})] : tgl ? [issuedT(tgl), sp(160)] : []), signBox(sg, gap)], {w:SR, nb:1, ml:0})]], [SL, SR], {nb:1});
 
   /* ----- Surat Tugas ----- */
-  const ST = () => { const Pt = petugas(s), n = lama(s.tb, s.tk), ds = String(s.dasar || '').split(/;|\n/).map(x => x.trim()).filter(Boolean);
-    const per = s.tb && s.tk && s.tb.slice(0, 7) === s.tk.slice(0, 7) ? (+s.tb.slice(8)) + ' s/d ' + dts(s.tk) : dts(s.tb) + ' s/d ' + dts(s.tk);
-    return [P('SURAT TUGAS', {al:'c', b:1, sz:23}), P('NOMOR : ' + (s.stNo || '...............................'), {al:'c', af:300}),
-      T([[C('Dasar', {w:1250, nb:1, ml:0}), C(':', {w:300, nb:1}), C(ds.length ? ds.map((x, i) => P(`${i + 1}.\t${x}`, {al:'j', ind:{left:360, hanging:360}, af:40})) : ['-'], {w:CW - 1550, nb:1})]], [1250, 300, CW - 1550], {nb:1}),
-      P('MENUGASKAN :', {al:'c', b:1, bf:240, af:160}),
-      T([[C('No.', {w:600, b:1}), C('Nama/NIP', {w:4400, b:1}), C('Jabatan', {w:3480, b:1})], ...Pt.map((p, i) => [C(String(i + 1), {w:600, al:'c'}), C([P(p.nama), ...(p.nip ? [P('NIP. ' + p.nip)] : [])], {w:4400}), C(p.jabatan || '', {w:3480})])], [600, 4400, 3480]),
-      sp(240), T([[C('Untuk', {w:1250, nb:1, ml:0}), C(':', {w:300, nb:1}), C(P(`${s.maksud}${s.tujuan ? ' di ' + s.tujuan : ''}, selama ${n} (${cap(terbilang(n))}) Hari sejak tanggal ${per}.`, {al:'j'}), {w:CW - 1550, nb:1})]], [1250, 300, CW - 1550], {nb:1}),
-      P('Demikian Surat Tugas ini diberikan untuk dilaksanakan dengan penuh rasa tanggung jawab.', {bf:240, af:240}), signArea(s.stTgl || s.tgl, signerOf(s, 'stS'))];
+  const ST = () => { const Pt = petugas(s), n = lama(s.tb, s.tk), ds = String(s.dasar || '').split(/;|\n/).map(x => x.trim()).filter(Boolean), sg = signerOf(s, 'stS'), U = untuk(s);
+    const L = 1250, M = 300, R2 = CW - L - M, K = 1700, G = 220;
+    const num = (a, bf = 0) => a.map((x, i) => P(`${i + 1}.\t${x}`, {al:'j', ind:{left:360, hanging:360}, tabs:[{type:'left', position:360}], bf:i ? 0 : bf}));
+    const row = (lab, kids, bf = 0) => [C([P(lab, {bf})], {w:L, nb:1, ml:0}), C([P(':', {bf})], {w:M, nb:1}), C(kids, {w:R2, nb:1})];
+    const orang = Pt.flatMap((p, i) => [T([['Nama', p.nama], ['Jabatan', p.jabatan], ['NIP', fmtNip(p.nip)], ['Pangkat/Gol', p.pg]].map(([a, v]) => [C(a, {w:K, nb:1, ml:0, mt:0, mb:0}), C(': ' + (v || '-'), {w:R2 - K, nb:1, mt:0, mb:0})]), [K, R2 - K], {nb:1}), ...(i < Pt.length - 1 ? [sp(100)] : [])]);
+    return [P([R('SURAT TUGAS', {b:1, u:1})], {al:'c'}), P('Nomor : ' + (s.stNo || '...............................'), {al:'c', af:300}),
+      T([row('Dasar', ds.length > 1 ? num(ds) : [P(ds[0] || '-', {al:'j'})])], [L, M, R2], {nb:1}),
+      P((sg.jabatan || '').toUpperCase(), {al:'c', b:1, bf:300, af:200}), P('MENUGASKAN:', {al:'c', af:280}),
+      T([row('Kepada', orang), row('Selama', [P(`${n} (${terbilang(n).toLowerCase()}) hari dari tanggal ${perST(s)}.`, {bf:G})], G),
+        row('Untuk', [P(U.head, {al:'j', bf:G}), ...num(U.items)], G)], [L, M, R2], {nb:1}),
+      P('Demikian Surat Tugas ini dibuat untuk dilaksanakan dengan penuh rasa tanggung jawab.', {al:'j', bf:280, af:360, ind:{firstLine:680}}),
+      signArea(s.stTgl || s.tgl, sg, 1300, true)];
   };
   /* ----- SPD ----- */
-  const SPD = () => { const e = pegOf(s), bd = s.bud || {}, n = lama(s.tb, s.tk), F = (s.fol || []).length ? s.fol : [{}, {}], W = [480, 420, 3480, 420, CW - 4800], Z = {sz:20}, AB = {ml:50, mr:20};
+  const SPD = () => { const e = pegOf(s), bd = s.bud || {}, n = lama(s.tb, s.tk), F = (s.fol || []).length ? s.fol : [{}, {}], W = [480, 420, 3100, 420, CW - 4420], Z = {sz:20, ln:216}, AB = {ml:50, mr:20};
     const r1 = (no, l, val, b) => [C(String(no), {w:W[0], al:'c', ...Z}), C(l, {w:W[1] + W[2], cs:2, ...Z}), C(P([R(val, {b, sz:20})]), {w:W[3] + W[4], cs:2})];
     const ab = (no, rows) => rows.map(([l, val], i) => [...(i === 0 ? [C(String(no), {w:W[0], al:'c', rs:rows.length, ...Z})] : []), C('abc'[i] + '.', {w:W[1], ...Z, ...AB}), C(l, {w:W[2], ...Z}), C('abc'[i] + '.', {w:W[3], ...Z, ...AB}), C(val, {w:W[4], ...Z})]);
     const rows = [r1(1, 'Pejabat Pembuat Komitmen', s.pejabat || c.jabatan, 1), r1(2, 'Nama Pegawai Yang di Perintah', e.nama),
       ...ab(3, [['Pangkat dan Golongan', (e.pangkat || '') + (e.gol ? ' Gol. ' + e.gol : '')], ['Jabatan', e.jabatan], ['Tingkat Biaya Perjalanan Dinas', s.tingkat]]),
-      r1(4, 'Maksud Perjalanan Dinas', s.maksud), r1(5, 'Alat Angkut yang dipergunakan', s.alat),
+      r1(4, 'Maksud Perjalanan Dinas', maksud1(s)), r1(5, 'Alat Angkut yang dipergunakan', s.alat),
       ...ab(6, [['Tempat Berangkat', s.asal], ['Tempat Tujuan', (s.tujuan || '') + (s.inst ? ' (' + s.inst + ')' : '')]]),
       ...ab(7, [['Lamanya Perjalanan Dinas', hari(n)], ['Tanggal berangkat', dts(s.tb)], ['Tanggal Harus Kembali', dts(s.tk)]]),
       [C('8.', {w:W[0], al:'c', rs:F.length + 1, ...Z}), C('Pengikut : nama', {w:W[1] + W[2], cs:2, ...Z}), C('Keterangan', {w:W[3] + W[4], cs:2, al:'c', ...Z})],
@@ -94,7 +99,7 @@ async function buildDocx(s, v) {
       [C('a.', {w:W[1], ...Z, ...AB}), C('Instansi', {w:W[2], ...Z}), C('a.', {w:W[3], ...Z, ...AB}), C(c.instansi, {w:W[4], ...Z})], [C('b.', {w:W[1], ...Z, ...AB}), C('Akun', {w:W[2], ...Z}), C('b.', {w:W[3], ...Z, ...AB}), C(s.mata || bd.rek || '', {w:W[4], ...Z})],
       r1(10, 'Keterangan Lain-lain', s.ket || '')];
     return [T([[C('Lembar ke', {w:1700, nb:1, ...Z}), C(': 1', {w:2800, nb:1, ...Z})], [C('Kode No', {w:1700, nb:1, ...Z}), C(':', {w:2800, nb:1, ...Z})], [C('Nomor', {w:1700, nb:1, ...Z}), C(': ' + s.no, {w:2800, nb:1, ...Z})]], [1700, 2800], {nb:1, ind:CW - 4500}),
-      P([R('SURAT PERJALANAN DINAS (SPD)', {b:1, u:1})], {al:'c', bf:200, af:160}), T(rows, W), P('*Coret yang tidak perlu', {sz:18}), sp(120), signArea(s.tgl)];
+      P([R('SURAT PERJALANAN DINAS (SPD)', {b:1, u:1})], {al:'c', bf:120, af:100}), T(rows, W), P('*Coret yang tidak perlu', {sz:18}), signArea(s.tgl, SG, 900)];
   };
   /* ----- Lampiran SPD ----- */
   const LAMP = () => { const W = [520, 4559, 4559], Z = {sz:20, ln:216};
@@ -149,7 +154,7 @@ async function buildDocx(s, v) {
     return out;
   };
 
-  const page = {size:{width:11906, height:16838}, margin:{top:2700, bottom:1134, left:1134, right:1134, header:560, footer:420}};
+  const page = {size:{width:11906, height:16838}, margin:{top:2450, bottom:1000, left:1134, right:1134, header:560, footer:420}};
   const sec = (children, lap) => lap
     ? {properties:{page:{...page, margin:{...page.margin, bottom:1134}, pageNumbers:{start:1}}, titlePage:true}, headers:{first:new Header({children:kopHdr()}), default:new Header({children:[P([new TextRun({children:[PageNumber.CURRENT], size:SZ, font:AR})], {al:'r'})]})}, footers:{first:new Footer({children:[P('')]}), default:new Footer({children:[P('')]})}, children}
     : {properties:{page}, headers:{default:new Header({children:kopHdr()})}, footers:{default:new Footer({children:[P('')]})}, children};
