@@ -35,3 +35,11 @@
 - [x] Form SPPD: "Maksud Perjalanan" jadi kotak teks multi-baris (maks 1000 karakter). Di SPD & judul laporan ditulis satu paragraf.
 - [x] SPD: lebar kolom dikunci agar tetap satu halaman walau maksud panjang. Word: margin atas 2450 / bawah 1000 twip; ST, SPD, Lampiran masing-masing 1 halaman (dicek LibreOffice).
 - [x] tests/run-local.js 39 lulus. Pengambilan data 3 detik belum diuji dengan Supabase sungguhan.
+
+## Perbaikan v1.2.5 (13 Nov 2026)
+- [x] Surat Tugas: tulisan jabatan pemberi tugas (mis. "KEPALA BIRO ADM. PEMBANGUNAN SETDA PROV. SULTRA") di badan surat dihapus — jabatan tetap ada di blok tanda tangan. Berlaku di cetak & Word.
+- [x] Lampiran SPD (halaman kedua Surat Perjalanan Dinas): kop surat dihapus (cetak & Word); tetap satu halaman.
+- [x] Laporan Perjalanan Dinas memakai template contoh LAPORAN_WAKATOBI_DOKUMENTASI.docx: kop hanya di halaman 1; judul 2 baris (tanpa cetak tebal); Times New Roman 12 pt, spasi 1,5, rata kiri-kanan, paragraf menjorok; I Pendahuluan (A–D), II Kegiatan, III Hasil, IV Kesimpulan dan Saran (1. Kesimpulan:, 2. Saran — butir •), V Penutup; tanda tangan "Yang melakukan perjalanan dinas," (nama + titik-titik); halaman "Dokumentasi" dengan keterangan foto; nomor halaman di kanan atas mulai halaman 2. Bagian "Rekomendasi" lama diganti "Saran" (data lama `tl` tetap terbaca sebagai Saran).
+- [x] Form Laporan: baris diawali "- " menjadi butir (•) di bawah nomor (Kegiatan & Hasil); kolom baru "Keterangan foto" (satu baris = satu foto, disimpan di `rep.fcap`).
+- [x] tests/run-local.js: +4 pemeriksaan (ST tanpa jabatan di badan, Lampiran tanpa kop, struktur laporan, font laporan Tinos). Uji kapasitas 12 laporan × 6 foto ([5]) tidak bisa dijalankan di lingkungan tanpa memori cukup — belum diuji ulang.
+- Catatan: contoh Wakatobi berukuran Letter dengan margin 2,54 cm; template di aplikasi tetap A4 (margin 2,5 cm).

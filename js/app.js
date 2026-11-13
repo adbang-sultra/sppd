@@ -24,7 +24,7 @@ const F = {
   prog:[['ta','Tahun Anggaran','number',1],['program','Program','text',1],['kdProgram','Kode Program','text'],['kegiatan','Kegiatan','text',1],['kdKegiatan','Kode Kegiatan','text'],['sub','Subkegiatan','text'],['kdSub','Kode Subkegiatan','text'],['rek','Kode Rekening','text',1],['sumber','Sumber Dana','text'],['pagu','Pagu Anggaran','number'],['unit','Unit Kerja','text']]
 };
 const SF = ['no','tgl','stNo','stTgl','dasar','pejabat','empId','maksud','alat','asal','tujuan','inst','tingkat','tb','tk','progId','mata','ket'];
-const RF = ['no','latar','dasar','mt','wkt','keg','hasil','kes','tl','penutup','tgl','h1','h2','h3'];
+const RF = ['no','latar','dasar','mt','wkt','keg','hasil','kes','tl','fcap','penutup','tgl','h1','h2','h3'];
 const CF = [['instansi','Nama Instansi'],['prov','Provinsi'],['kab','Kabupaten/Kota'],['kec','Kecamatan'],['desa','Desa/Kelurahan'],['alamat','Alamat'],['telp','Nomor Telepon'],['pejabat','Nama Pejabat'],['nip','NIP Pejabat'],['jabatan','Jabatan Penandatangan'],['ta','Tahun Anggaran']];
 
 /* NIP: wajib & 18 digit untuk PNS/PPPK; pegawai non-ASN boleh tanpa NIP (disimpan "-"); NIP yang terisi tidak boleh kembar. */
@@ -335,7 +335,7 @@ act('bakEnc', () => modal('Backup Terenkripsi', `<p class="muted sm mb-3">Buat k
   dl('backup_sppd_' + today() + '_terenkripsi.json', JSON.stringify({app:'sim-sppd', v:2, enc:{salt, it:ITER, box:ct}}), 'application/json'); log('Ekspor backup terenkripsi'); return true;
 }, false, 'Buat & Unduh'), 'a');
 act('expSppd', () => dl('sppd.csv', toCSV([['Nomor', 'Tanggal', 'Pegawai', 'Tujuan', 'Maksud', 'Berangkat', 'Kembali', 'Total Biaya'], ...D.sppd.map(x => [x.no, x.tgl, pegOf(x).nama, x.tujuan, x.maksud, x.tb, x.tk, totB(x)])])));
-act('expRep', () => dl('laporan.csv', toCSV([['SPPD', 'Status', 'Hasil', 'Kesimpulan', 'Rekomendasi'], ...D.rep.map(r => [D.sppd.find(s => s.id === r.sppdId)?.no, r.status, r.hasil || [r.h1, r.h2, r.h3].filter(Boolean).join(' | '), r.kes, r.tl])])));
+act('expRep', () => dl('laporan.csv', toCSV([['SPPD', 'Status', 'Hasil', 'Kesimpulan', 'Saran'], ...D.rep.map(r => [D.sppd.find(s => s.id === r.sppdId)?.no, r.status, r.hasil || [r.h1, r.h2, r.h3].filter(Boolean).join(' | '), r.kes, r.tl])])));
 act('pickRestore', () => { $('#fjson').value = ''; $('#fjson').click(); }, 'a');
 $('#fjson').addEventListener('change', async e => {
   if (!isA()) return toast('Hanya administrator yang dapat restore', 'err');

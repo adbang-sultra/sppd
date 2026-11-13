@@ -340,7 +340,7 @@ input[type=date].in:focus-visible{outline:none}
   /* v1.2: blok tanda tangan tidak terpotong antarhalaman; margin tetap putih walau mode gelap + "Background graphics" */
   :root{color-scheme:light!important}
   .sig2,.sg2c,.sg3c,.sgw,.tte,.sgb,.wsg,.dnote{break-inside:avoid;page-break-inside:avoid}
-  .lap h4,.lap h5{break-after:avoid;page-break-after:avoid}
+  .lap .lh1,.lap .lh2{break-after:avoid;page-break-after:avoid}
 }
 /* Mobile minimalis: kolom sekunder disembunyikan pada kartu (lengkapnya lewat tombol Detail) */
 @media (max-width:767px){.tblw:not(.keep) .tbl td:is([data-label=JK],[data-label=Telp],[data-label=Maksud],[data-label=Kembali],[data-label=Kode],[data-label=Subkegiatan],[data-label="Sumber Dana"]){display:none}}

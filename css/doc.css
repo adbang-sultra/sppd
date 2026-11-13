@@ -34,7 +34,6 @@
 .paper.st .pbody{line-height:1.18}
 .st-t{text-align:center;font-weight:700;text-decoration:underline;margin-top:1mm}
 .st-n{text-align:center;margin-bottom:5mm}
-.st-j{text-align:center;font-weight:700;margin:3mm 0 3mm}
 .st-m{text-align:center;margin-bottom:4mm}
 .paper .st-l>tbody>tr>td{padding:0 0 3mm}
 .st-l .ol{padding-left:6mm}.paper .st-l .ol li{margin-bottom:0}
@@ -74,17 +73,26 @@
 /* blok tanda tangan rata kiri di kolom kanan, seperti contoh Surat Tugas */
 .sgb{text-align:left}.sgb.nb{margin-top:2mm}.sg-sp{height:24mm}
 .lampt .sgb.nb{margin-top:1mm}.lampt .sgb.nb .sg-sp{height:15mm}
-.lamp .kop2{margin-bottom:4mm}.lamp .sgw.r{margin-top:2mm}.lamp .sgw.r .sg-sp{height:20mm}
+.lamp .sgw.r{margin-top:2mm}.lamp .sgw.r .sg-sp{height:20mm}
 
-/* ---------- Laporan (format Bandung) ---------- */
-.paper.lap{font:12pt/1.5 var(--sans)}
-.lap h4{font-weight:700;margin:14px 0 4px;font-size:12pt}.lap h5{font-weight:700;margin:6px 0 2px 14px;font-size:12pt}
-.lap .lt{text-align:center;font-weight:700;margin:6px 0 10px}
-.lap .just{text-align:justify;white-space:pre-wrap;margin:2px 0 6px 28px;text-indent:1.2cm}
-.lap .lo,.lo{list-style:decimal;margin:2px 0 6px 50px;padding:0;text-align:justify}.lo.ml18{margin-left:18px}
-.lap .blank{height:44px;border-bottom:1px dotted #777;margin:2px 0 6px 28px}
-.lap .sig2{margin:18px 0 0 40%}.lap .sig2 table{margin-top:10mm;margin-left:-40%;width:140%}.lap .sig2 td{padding:0 8px 12mm 0;vertical-align:bottom}.lap .sig2 td:first-child{width:8mm}
-.lap .gal img{display:block;width:80%;height:110mm;object-fit:cover;margin:10mm auto 0;page-break-inside:avoid}
+/* ---------- Laporan — template contoh LAPORAN_WAKATOBI: Times New Roman 12 pt, spasi 1,5, rata kiri-kanan ---------- */
+.paper.lap{--sans:'Tinos','Times New Roman',Times,serif;font:12pt/1.5 var(--sans);padding:14mm 22mm 14mm 25mm}
+.lap .lt{text-align:center;margin:6mm 0 7mm}
+.lap .lh1,.lap .lh2,.lap .li{display:flex;align-items:baseline}
+.lap i{font-style:normal;flex:none;width:10mm}
+.lap .lh1{margin-top:5mm;break-after:avoid}
+.lap .lh2{margin:1mm 0 0 10mm;break-after:avoid}
+.lap .lp{text-align:justify;margin:0 0 0 10mm;text-indent:10mm}
+.lap .li{margin:0 0 0 10mm;text-align:justify}
+.lap .li.b i{width:6mm;margin-left:4mm}
+.lap .li.l2{margin-left:20mm}
+.lap .blank{height:44px;border-bottom:1px dotted #777;margin:2px 0 6px 10mm}
+.lap .lsig{text-align:center;margin:8mm 0 2mm;break-inside:avoid;break-after:avoid}
+.lap .lsn{width:100%;margin-top:6mm}.paper.lap .lsn td{padding:0 0 11mm;vertical-align:bottom;border:none}.lap .lsn td:first-child{width:14mm;text-align:right;padding-right:3mm}.lap .lsn td:last-child{width:50mm}
+.lap .lsn,.lap .lsn tr{break-inside:avoid}.lap .lp:has(+ .lsig){break-after:avoid}
+.lap .gal{margin:0 0 8mm;text-align:center;break-inside:avoid}
+.lap .gal figcaption{text-align:center;margin:0 0 3mm}
+.lap .gal img{display:block;max-width:100%;max-height:105mm;width:auto;height:auto;margin:0 auto}
 
 /* ---------- Rincian biaya & kuitansi (v1.2) ---------- */
 .paper .rbh{width:auto;margin:5mm 0 3mm}.rbh td{padding:.4mm 0}.rbh .l1w{width:52mm}.rbh .l2{width:5mm}
@@ -109,6 +117,6 @@
 /* Cetak: nomor halaman untuk laporan */
 @media print{
   #pa.pn .paper{page:pn}
-  @page pn{@top-right{content:counter(page);font:12pt Arial,'Liberation Sans',sans-serif;color:#000}}
+  @page pn{margin:20mm 20mm 18mm 25mm;@top-right{content:counter(page);font:12pt Arial,'Liberation Sans',sans-serif;color:#000}}
   @page pn:first{@top-right{content:none}}
 }

@@ -38,13 +38,13 @@ async function kopPNG() {
 }
 async function buildDocx(s, v) {
   const X = await loadDocx(), c = D.cfg;
-  const {Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ImageRun, Header, Footer, PageNumber, VerticalAlign, TabStopType, PageBreak} = X;
+  const {Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType, ImageRun, Header, Footer, PageNumber, VerticalAlign, TabStopType, PageBreak, LevelFormat} = X;
   const TNR = 'Times New Roman', CW = 9638;                         /* lebar isi A4 (twip) dengan margin 2 cm */
   const NONE = {style:BorderStyle.NONE, size:0, color:'FFFFFF'}, NB = {top:NONE, bottom:NONE, left:NONE, right:NONE, insideHorizontal:NONE, insideVertical:NONE};
   const LINE = {style:BorderStyle.SINGLE, size:6, color:'000000'}, BB = {top:LINE, bottom:LINE, left:LINE, right:LINE, insideHorizontal:LINE, insideVertical:LINE};
   const AR = 'Arial', SZ = 24;                                       /* isi dokumen: Arial 12 pt; o.kop=1 hanya untuk teks kop surat */
-  const R = (t, o = {}) => new TextRun({text:String(t ?? ''), bold:o.b, underline:o.u ? {} : undefined, italics:o.i, size:o.kop ? o.sz : SZ, font:o.kop ? o.f : AR, break:o.br});
-  const P = (k, o = {}) => new Paragraph({children:(Array.isArray(k) ? k : [R(k, o)]), alignment:o.al === 'c' ? AlignmentType.CENTER : o.al === 'r' ? AlignmentType.RIGHT : o.al === 'j' ? AlignmentType.JUSTIFIED : AlignmentType.LEFT, spacing:{before:o.bf || 0, after:o.af ?? 0, ...(o.ln ? {line:o.ln, lineRule:'auto'} : {})}, indent:o.ind, keepNext:o.kn, border:o.bd, tabStops:o.tabs, pageBreakBefore:o.pb});
+  const R = (t, o = {}) => new TextRun({text:String(t ?? ''), bold:o.b, underline:o.u ? {} : undefined, italics:o.i, size:o.kop || o.tn ? o.sz : SZ, font:o.kop || o.tn ? o.f : AR, break:o.br});
+  const P = (k, o = {}) => new Paragraph({children:(Array.isArray(k) ? k : [R(k, o)]), alignment:o.al === 'c' ? AlignmentType.CENTER : o.al === 'r' ? AlignmentType.RIGHT : o.al === 'j' ? AlignmentType.JUSTIFIED : AlignmentType.LEFT, spacing:{before:o.bf || 0, after:o.af ?? 0, ...(o.ln ? {line:o.ln, lineRule:'auto'} : {})}, indent:o.ind, keepNext:o.kn, border:o.bd, tabStops:o.tabs, pageBreakBefore:o.pb, numbering:o.num, keepLines:o.kl});
   const C = (ch, o = {}) => new TableCell({children:(Array.isArray(ch) ? ch : [ch]).map(x => typeof x === 'string' ? P(x, o) : x), width:o.w ? {size:o.w, type:WidthType.DXA} : undefined, columnSpan:o.cs, rowSpan:o.rs, verticalAlign:o.va === 'c' ? VerticalAlign.CENTER : VerticalAlign.TOP, borders:o.nb ? {top:NONE, bottom:NONE, left:NONE, right:NONE} : o.bd, margins:{top:o.mt ?? 15, bottom:o.mb ?? 15, left:o.ml ?? 90, right:o.mr ?? 90}});
   const T = (rows, widths, o = {}) => new Table({rows:rows.map(r => r instanceof TableRow ? r : new TableRow({children:r, height:o.rh ? {value:o.rh, rule:'atLeast'} : undefined, cantSplit:true})), width:{size:widths.reduce((a, b) => a + b, 0), type:WidthType.DXA}, columnWidths:widths, borders:o.nb ? NB : BB, indent:o.ind ? {size:o.ind, type:WidthType.DXA} : undefined, layout:'fixed'});
   const sp = n => P('', {af:n});
@@ -52,8 +52,8 @@ async function buildDocx(s, v) {
   /* ----- Kop (header) ----- */
   const kopImg = (kc('kopMode') === 'gambar' && okImg(c.kopImg) ? await imgBytes(c.kopImg) : null) || await kopPNG();
   const logo = null;
-  const kopHdr = () => {
-    if (kopImg) { const w = 640; return [new Paragraph({children:[new ImageRun({type:kopImg.type, data:kopImg.data, transformation:{width:w, height:Math.round(w * kopImg.h / kopImg.w)}})], alignment:AlignmentType.CENTER})]; }
+  const kopHdr = (w = 640) => {
+    if (kopImg) { return [new Paragraph({children:[new ImageRun({type:kopImg.type, data:kopImg.data, transformation:{width:w, height:Math.round(w * kopImg.h / kopImg.w)}})], alignment:AlignmentType.CENTER})]; }
     const lw = 86, lh = logo ? Math.round(lw * logo.h / logo.w) : 0;
     return [T([[C(logo ? new Paragraph({children:[new ImageRun({type:logo.type, data:logo.data, transformation:{width:lw, height:lh}})]}) : P(''), {w:1500, nb:1, va:'c', ml:0}),
       C([P(kc('kop1'), {al:'c', b:1, sz:27, f:TNR, kop:1}), P(kc('kop2'), {al:'c', sz:44, f:'Cooper Black', b:0, kop:1}), P(kc('kop3'), {al:'c', sz:19, f:TNR, kop:1})], {w:CW - 1500, nb:1, va:'c'})]], [1500, CW - 1500], {nb:1}),
@@ -78,7 +78,7 @@ async function buildDocx(s, v) {
     const orang = Pt.flatMap((p, i) => [T([['Nama', p.nama], ['Jabatan', p.jabatan], ['NIP', fmtNip(p.nip)], ['Pangkat/Gol', p.pg]].map(([a, v]) => [C(a, {w:K, nb:1, ml:0, mt:0, mb:0}), C(': ' + (v || '-'), {w:R2 - K, nb:1, mt:0, mb:0})]), [K, R2 - K], {nb:1}), ...(i < Pt.length - 1 ? [sp(100)] : [])]);
     return [P([R('SURAT TUGAS', {b:1, u:1})], {al:'c'}), P('Nomor : ' + (s.stNo || '...............................'), {al:'c', af:300}),
       T([row('Dasar', ds.length > 1 ? num(ds) : [P(ds[0] || '-', {al:'j'})])], [L, M, R2], {nb:1}),
-      P((sg.jabatan || '').toUpperCase(), {al:'c', b:1, bf:300, af:200}), P('MENUGASKAN:', {al:'c', af:280}),
+      P('MENUGASKAN:', {al:'c', bf:300, af:280}),
       T([row('Kepada', orang), row('Selama', [P(`${n} (${terbilang(n).toLowerCase()}) hari dari tanggal ${perST(s)}.`, {bf:G})], G),
         row('Untuk', [P(U.head, {al:'j', bf:G}), ...num(U.items)], G)], [L, M, R2], {nb:1}),
       P('Demikian Surat Tugas ini dibuat untuk dilaksanakan dengan penuh rasa tanggung jawab.', {al:'j', bf:280, af:360, ind:{firstLine:680}}),
@@ -133,35 +133,44 @@ async function buildDocx(s, v) {
         ['Untuk pembayaran', `Biaya perjalanan dinas dalam rangka ${s.maksud}${s.tujuan ? ' di ' + s.tujuan : ''} selama ${hari(n)}, tanggal ${dts(s.tb)} s/d ${dts(s.tk)}, sesuai SPD Nomor ${s.no} tanggal ${dts(s.tgl)}.`]], 2600), sp(400),
       T([[C([P('Setuju dibayar,', Z), ...wet((SG.jabatan || 'Pejabat Pembuat Komitmen') + ',', SG.nama, SG.nip, SG.pangkat)], {w:third, ...NO}), C([P('Lunas dibayar,', Z), ...wet('Bendahara Pengeluaran,', c.bendahara, c.nipBend)], {w:third, nb:1}), C([P(`${kc('kota')}, ${dts(s.tgl)}`, Z), ...wet('Yang menerima,', e.nama, e.nip)], {w:CW - 2 * third, nb:1})]], [third, third, CW - 2 * third], {nb:1})];
   };
-  /* ----- Laporan (format Bandung) ----- */
-  const LAP = async () => { const r = D.rep.find(x => x.sppdId === s.id) || {}, Pt = petugas(s), A = 'Arial', Z = {f:A, sz:22};
-    const H4 = t => P(t, {...Z, b:1, bf:240, af:80, kn:1}), H5 = t => P(t, {...Z, b:1, bf:100, af:40, ind:{left:280}, kn:1});
-    const J = t => String(t || '').trim() ? P(t, {...Z, al:'j', ind:{left:560, firstLine:680}, af:120, ln:300}) : P('................................................................................................', {...Z, ind:{left:560}, af:120});
-    const OL = t => { const a = lines(t); return a.length ? a.map((x, i) => P(`${i + 1}.\t${x}`, {...Z, al:'j', ind:{left:1000, hanging:360}, af:60, ln:300})) : [J('')]; };
+  /* ----- Laporan — template contoh LAPORAN_WAKATOBI: Times New Roman 12, spasi 1,5, rata kiri-kanan, kop hanya di halaman 1 ----- */
+  const LAP = async () => { const r = D.rep.find(x => x.sppdId === s.id) || {}, Pt = petugas(s), Z = {f:TNR, sz:24, tn:1}, LN = 360, T1 = 567, T2 = 1134;
+    const H1 = (n, t) => P(`${n}\t${t}`, {...Z, ln:LN, bf:200, kn:1, ind:{left:T1, hanging:T1}, tabs:[{type:'left', position:T1}]});
+    const H2 = (n, t) => P(`${n}\t${t}`, {...Z, ln:LN, kn:1, ind:{left:T2, hanging:T1}, tabs:[{type:'left', position:T2}]});
+    const J = (t, kn) => { const a = lines(t); return a.length ? a.map(x => P(x, {...Z, al:'j', ln:LN, kn, ind:{left:T1, firstLine:T1}})) : [P('................................................................................................', {...Z, ln:LN, ind:{left:T1}})]; };
+    /* satu baris = satu nomor; "- " = butir di bawah nomor; bul → semua butir */
+    const LS = (t, bul) => { const a = lines(t); if (!a.length) return J(''); let n = 0;
+      return a.map(x => bul || isB(x) ? P(unb(x), {...Z, al:'j', ln:LN, num:{reference:'bul', level:bul ? 0 : 1}}) : P(`${++n}.\t${unnum(x)}`, {...Z, al:'j', ln:LN, ind:{left:T2, hanging:T1}, tabs:[{type:'left', position:T2}]})); };
+    const LSP = t => { const a = lines(t); return a.length === 1 && !isB(a[0]) && !/^\d+[.)]\s/.test(a[0]) ? J(t) : LS(t); };
     const wkt = r.wkt || `Kegiatan dilaksanakan pada tanggal ${dts(s.tb)} s.d ${dts(s.tk)} di ${s.tujuan || '-'}${s.inst ? ' (' + s.inst + ')' : ''}.`;
     const dasar = [...(s.stNo ? [`Surat Tugas ${signerOf(s, 'stS').jabatan || c.jabatan} Nomor ${s.stNo}${s.stTgl ? ' tanggal ' + dts(s.stTgl) : ''}`] : []), `Surat Perintah Perjalanan Dinas Nomor ${s.no}`, ...lines(r.dasar)].join('\n');
     const keg = r.keg || `${dt(s.tb)} berangkat dari ${s.asal || '-'} ke ${s.tujuan}\n${dt(s.tk)} kembali ke ${s.asal || '-'}`, hasil = r.hasil || [r.h1, r.h2, r.h3].filter(Boolean).join('\n');
-    const ttl = (s.maksud || '').toUpperCase();
-    const out = [P('LAPORAN HASIL PERJALANAN DINAS', {...Z, b:1, al:'c'}), P(ttl, {...Z, b:1, al:'c', af:240}),
-      H4('I.\tPENDAHULUAN'), H5('A.  Latar Belakang'), J(r.latar), H5('B.  Dasar Hukum'), ...OL(dasar), H5('C.  Maksud dan Tujuan'), J(r.mt || s.maksud), H5('D.  Waktu Pelaksanaan'), J(wkt),
-      H4('II.\tKEGIATAN YANG DILAKSANAKAN'), ...OL(keg), H4('III.\tHASIL YANG DICAPAI'), ...OL(hasil), H4('IV.\tKESIMPULAN DAN SARAN'), J(r.kes), H4('V.\tREKOMENDASI'), ...OL(r.tl), H4('VI.\tPENUTUP'), J(r.penutup || 'Demikian Laporan perjalanan dinas ini dibuat untuk dipergunakan sebagaimana mestinya.'),
-      sp(200), P(`${kc('kota')}, ${dts(r.tgl || today())}`, {...Z, ind:{left:4300}}), P('Yang Melaporkan,', {...Z, ind:{left:4300}, af:400}),
-      ...Pt.map((p, i) => P([R(`${i + 1}.\t${p.nama}`, Z), R('\t……………………', Z)], {tabs:[{type:TabStopType.LEFT, position:400}, {type:TabStopType.LEFT, position:6200}], af:500}))];
-    const Fo = (r.foto || []).map(okImg).filter(Boolean);
-    for (let i = 0; i < Fo.length; i++) { const im = await imgBytes(Fo[i]); if (!im) continue; const w = 480, h = Math.min(400, Math.round(w * im.h / im.w));
-      if (i % 2 === 0) { out.push(P('DOKUMENTASI PERJALANAN DINAS', {...Z, b:1, al:'c', pb:true})); if (i === 0) out.push(P(ttl, {...Z, b:1, al:'c', af:200})); }
-      out.push(new Paragraph({children:[new ImageRun({type:im.type, data:im.data, transformation:{width:w, height:h}})], alignment:AlignmentType.CENTER, spacing:{before:300}})); }
+    const ttl = maksud1(s).toUpperCase();
+    const out = [...kopHdr(600), P('', {...Z, ln:LN}), P('LAPORAN HASIL PERJALANAN DINAS', {...Z, al:'c', ln:LN}), P(ttl, {...Z, al:'c', ln:LN, af:240}),
+      H1('I.', 'PENDAHULUAN'), H2('A.', 'Latar Belakang'), ...J(r.latar), H2('B.', 'Dasar Hukum'), ...LS(dasar), H2('C.', 'Maksud dan Tujuan'), ...J(r.mt || maksud1(s)), H2('D.', 'Waktu Pelaksanaan'), ...J(wkt),
+      H1('II.', 'KEGIATAN YANG DILAKSANAKAN'), ...LSP(keg), H1('III.', 'HASIL YANG DICAPAI'), ...LSP(hasil),
+      H1('IV.', 'KESIMPULAN DAN SARAN'), H2('1.', 'Kesimpulan:'), ...LS(r.kes, 1), H2('2.', 'Saran'), ...LS(r.tl, 1),
+      H1('V.', 'PENUTUP'), ...J(r.penutup || 'Demikian Laporan Hasil Perjalanan Dinas ini disusun untuk dipergunakan sebagaimana mestinya.', true),
+      P(`${kc('kota')}, ${dts(r.tgl || today())}`, {...Z, al:'c', ln:LN, bf:360, kn:1}), P('Yang melakukan perjalanan dinas,', {...Z, al:'c', ln:LN, af:360, kn:1}),
+      ...Pt.map((p, i) => P([R(`${i + 1}.\t${p.nama}`, Z), R('\t………………………', Z)], {tabs:[{type:TabStopType.LEFT, position:T2}, {type:TabStopType.LEFT, position:6600}], ind:{left:T2, hanging:T1}, af:420, kn:i < Pt.length - 1, kl:true}))];
+    const Fo = (r.foto || []).map(okImg).filter(Boolean), FC = String(r.fcap || '').split('\n').map(x => x.trim());
+    for (let i = 0; i < Fo.length; i++) { const im = await imgBytes(Fo[i]); if (!im) continue; const k = Math.min(520 / im.w, 330 / im.h), pg = i % 2 === 0 && i > 0, cp = FC[i];
+      if (i === 0) out.push(P('Dokumentasi', {...Z, al:'c', ln:LN, pb:true, af:120}));
+      if (cp) out.push(P(cp, {...Z, al:'c', ln:LN, bf:i % 2 ? 360 : 0, af:120, kn:true, pb:pg}));
+      out.push(new Paragraph({children:[new ImageRun({type:im.type, data:im.data, transformation:{width:Math.round(im.w * k), height:Math.round(im.h * k)}})], alignment:AlignmentType.CENTER, spacing:{before:cp ? 0 : (i % 2 ? 360 : 120), after:120}, pageBreakBefore:!cp && pg})); }
     return out;
   };
 
   const page = {size:{width:11906, height:16838}, margin:{top:2450, bottom:1000, left:1134, right:1134, header:560, footer:420}};
-  const sec = (children, lap) => lap
-    ? {properties:{page:{...page, margin:{...page.margin, bottom:1134}, pageNumbers:{start:1}}, titlePage:true}, headers:{first:new Header({children:kopHdr()}), default:new Header({children:[P([new TextRun({children:[PageNumber.CURRENT], size:SZ, font:AR})], {al:'r'})]})}, footers:{first:new Footer({children:[P('')]}), default:new Footer({children:[P('')]})}, children}
+  const sec = (children, lap, nokop) => nokop
+    ? {properties:{page:{...page, margin:{...page.margin, top:1134}}}, headers:{default:new Header({children:[P('')]})}, footers:{default:new Footer({children:[P('')]})}, children}   /* Lampiran SPD: tanpa kop surat */
+    : lap
+    ? {properties:{page:{...page, margin:{top:1440, bottom:1440, left:1440, right:1440, header:600, footer:420}, pageNumbers:{start:1}}, titlePage:true}, headers:{first:new Header({children:[P('')]}), default:new Header({children:[P([new TextRun({children:[PageNumber.CURRENT], size:SZ, font:AR})], {al:'r'})]})}, footers:{first:new Footer({children:[P('')]}), default:new Footer({children:[P('')]})}, children}
     : {properties:{page}, headers:{default:new Header({children:kopHdr()})}, footers:{default:new Footer({children:[P('')]})}, children};
   const list = v === 'all' ? ['st', 'sppd', 'lamp', ...(hasB(s) ? ['biaya'] : []), 'lap'] : [v], map = {st:ST, sppd:SPD, lamp:LAMP, biaya:BIAYA};
   const sections = [];
-  for (const k of list) sections.push(k === 'lap' ? sec(await LAP(), true) : sec(map[k](), false));
-  const doc = new Document({creator:'SIM Pegawai & SPPD', title:'Dokumen SPPD ' + s.no, styles:{default:{document:{run:{font:AR, size:SZ}}}}, sections});
+  for (const k of list) sections.push(k === 'lap' ? sec(await LAP(), true) : sec(map[k](), false, k === 'lamp'));
+  const doc = new Document({creator:'SIM Pegawai & SPPD', title:'Dokumen SPPD ' + s.no, styles:{default:{document:{run:{font:AR, size:SZ}}}}, numbering:{config:[{reference:'bul', levels:[{level:0, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT, style:{paragraph:{indent:{left:1134, hanging:340}}, run:{font:TNR}}}, {level:1, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT, style:{paragraph:{indent:{left:1474, hanging:340}}, run:{font:TNR}}}]}]}, sections});
   return Packer.toBlob(doc);
 }
 async function expDoc(id, v) {
