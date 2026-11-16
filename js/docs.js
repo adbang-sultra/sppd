@@ -61,8 +61,8 @@ function dST(s) {
 }
 
 /* ---------- SPD (lembar depan) ---------- */
-function dSPPD(s) {
-  const e = pegOf(s), bd = s.bud || {}, c = D.cfg, F = s.fol || [], n = lama(s.tb, s.tk), sg = signerOf(s, 'spdS');
+function dSPPD1(s, e) {
+  const bd = s.bud || {}, c = D.cfg, F = [], n = lama(s.tb, s.tk), sg = signerOf(s, 'spdS');
   const r1 = (no, l, v, cl = '') => `<tr><td class="c-no">${no}</td><td colspan="2">${l}</td><td colspan="2" class="${cl}">${v}</td></tr>`;
   const ab = (no, rows) => rows.map(([l, v], i) => `<tr>${i === 0 ? `<td class="c-no" rowspan="${rows.length}">${no}</td>` : ''}<td class="c-ab">${'abc'[i]}.</td><td>${l}</td><td class="c-ab">${'abc'[i]}.</td><td>${v}</td></tr>`).join('');
   const fol = F.length ? F : [{}, {}];
@@ -120,5 +120,7 @@ function dKwit(s) {
   <div class="sg3c"><div>Setuju dibayar,${wet(esc(ppk.jabatan || 'Pejabat Pembuat Komitmen') + ',', ppk.nama, ppk.nip, ppk.pangkat)}</div><div>Lunas dibayar,${wet('Bendahara Pengeluaran,', c.bendahara, c.nipBend)}</div><div>${esc(kc('kota'))}, ${dts(s.tgl)}${wet('Yang menerima,', e.nama, e.nip)}</div></div></div>`;
 }
 const hasB = s => (s.biaya || []).length > 0;
-const docs = (s, v) => v === 'st' ? dST(s) : v === 'sppd' ? dSPPD(s) : v === 'lamp' ? dLamp(s) : v === 'biaya' ? dBiaya(s) + dKwit(s) : v === 'lap' ? dLap(s) : dST(s) + dSPPD(s) + dLamp(s) + (hasB(s) ? dBiaya(s) + dKwit(s) : '') + dLap(s);
+/* SPD dibuat per orang (pegawai + tiap pengikut); poin 8 (pengikut) dikosongkan; Lampiran SPD menyertai tiap SPD */
+const dSPPD = s => spdPeople(s).map(p => dSPPD1(s, p)).join(''), dLampN = s => spdPeople(s).map(() => dLamp(s)).join(''), dSPDset = s => spdPeople(s).map(p => dSPPD1(s, p) + dLamp(s)).join('');
+const docs = (s, v) => v === 'st' ? dST(s) : v === 'sppd' ? dSPPD(s) : v === 'lamp' ? dLampN(s) : v === 'biaya' ? dBiaya(s) + dKwit(s) : v === 'lap' ? dLap(s) : dST(s) + dSPDset(s) + (hasB(s) ? dBiaya(s) + dKwit(s) : '') + dLap(s);
 

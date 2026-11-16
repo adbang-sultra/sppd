@@ -67,6 +67,18 @@ fs.mkdirSync(OUT, {recursive:true});
   ok(/KESIMPULAN DAN SARAN/.test(lapH) && /Kesimpulan:/.test(lapH) && />Saran</.test(lapH) && /PENUTUP/.test(lapH) && /Yang melakukan perjalanan dinas,/.test(lapH) && !/REKOMENDASI|VI\./.test(lapH), 'Laporan: struktur I–V (Kesimpulan & Saran, Penutup) seperti template');
   const lapF = await p.evaluate(() => { const e = $('#main .paper.lap .lp') || $('#main .paper.lap .li'); if (!e) return 'tidak ada'; const c = getComputedStyle(e); return c.fontFamily.slice(0, 20) + '|' + c.fontSize + '|' + c.textAlign; });
   ok(/^Tinos|^"Tinos/.test(lapF) && /\|16px\|justify/.test(lapF), 'Laporan: Times New Roman (Tinos) 12 pt rata kiri-kanan', lapF);
+  /* v1.2.6: SPD per orang (pegawai + pengikut), poin 8 kosong; nomor & tanggal SPPD boleh kosong */
+  const spdT = await p.evaluate(() => { const s = {...D.sppd[0], fol:[{nama:'Ani Pengikut', nip:'', gol:'III/a', jabatan:'Staf A'}, {nama:'Candra Pengikut', nip:'', gol:'III/b', jabatan:'Staf B'}]}, h = dSPPD(s), all = docs(s, 'all'); return {n:(h.match(/paper fx spd/g) || []).length, a:(h.match(/Ani Pengikut/g) || []).length, c:(h.match(/Candra Pengikut/g) || []).length, lamp:(all.match(/paper fx lamp/g) || []).length, urut:all.indexOf('paper fx spd') < all.indexOf('paper fx lamp') && all.split('paper fx spd')[2].indexOf('paper fx lamp') < all.split('paper fx spd')[2].indexOf('Candra') + 10000}; });
+  ok(spdT.n === 3 && spdT.a === 1 && spdT.c === 1, 'SPD dibuat per orang (3 lembar untuk 1 pegawai + 2 pengikut), poin 8 tidak berisi nama pengikut', JSON.stringify(spdT));
+  ok(spdT.lamp === 3, 'Paket cetak: tiap SPD disusul Lampiran SPD-nya', JSON.stringify(spdT));
+  const nTotal = await p.evaluate(() => D.sppd.length);
+  const prevV = await p.evaluate(() => location.hash.slice(1).split('?')[0] || 'cetak');
+  await p.evaluate(() => go('form')); await p.waitForSelector('#s_no');
+  await p.selectOption('#s_emp', {index:1}); await p.fill('#s_maksud', 'Uji nomor kosong'); await p.fill('#s_tujuan', 'Bau-Bau'); await p.fill('#s_tb', '2026-03-02'); await p.fill('#s_tk', '2026-03-03');
+  await p.click('#mok'); await sleep(600);
+  const blk = await p.evaluate(() => { const x = D.sppd[D.sppd.length - 1]; return {n:D.sppd.length, no:x.no, tgl:x.tgl, spd:dSPPD(x).length > 100, list:1}; });
+  ok(blk.n === nTotal + 1 && blk.no === '' && blk.tgl === '', 'SPPD tersimpan dengan nomor & tanggal SPPD kosong', JSON.stringify(blk));
+  await p.evaluate(v => { D.sppd.pop(); save('sppd'); go(v); }, prevV); await sleep(400);
   const [dlw] = await Promise.all([p.waitForEvent('download', {timeout:30000}).catch(() => null), p.click('[data-act="expDocW"]')]);
   if (dlw) await dlw.saveAs(OUT + '/paket.docx'); ok(!!dlw && fs.statSync(OUT + '/paket.docx').size > 50000, 'Unduh Word paket lengkap (termasuk biaya) di bawah CSP', dlw ? fs.statSync(OUT + '/paket.docx').size + ' byte' : (await toasts(p)).join('|'));
   for (const mode of ['dark', 'light']) { await p.evaluate(m => { document.documentElement.dataset.mode = m; $('#pa').innerHTML = docs(D.sppd[0], 'all'); $('#pa').classList.add('pn'); }, mode); await p.emulateMedia({media:'print'}); await p.pdf({path:`${OUT}/cetak-${mode}.pdf`, format:'A4', printBackground:true, preferCSSPageSize:true}); await p.emulateMedia({media:'screen'}); }

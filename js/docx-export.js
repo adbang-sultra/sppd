@@ -68,7 +68,7 @@ async function buildDocx(s, v) {
   const SL = Math.round(CW * .40), SR = CW - SL;                       /* blok tanda tangan: kolom kanan, rata kiri (seperti contoh SPT) */
   const signBox = (sg, gap) => T([[C(signParas(true, sg, gap), {w:SR, nb:1, ml:0})]], [SR], {nb:1});
   const issuedT = tgl => T([[C('Dikeluarkan di', {w:1900, nb:1, ml:0}), C(': ' + kc('kota'), {w:2900, nb:1})], [C('Pada tanggal', {w:1900, nb:1, ml:0}), C(': ' + dts(tgl), {w:2900, nb:1})]], [1900, 2900], {nb:1});
-  const signArea = (tgl, sg = SG, gap, place) => T([[C('', {w:SL, nb:1}), C([...(place ? [P(kc('kota') + ', ' + dts(tgl), {af:0})] : tgl ? [issuedT(tgl), sp(160)] : []), signBox(sg, gap)], {w:SR, nb:1, ml:0})]], [SL, SR], {nb:1});
+  const signArea = (tgl, sg = SG, gap, place) => T([[C('', {w:SL, nb:1}), C([...(place ? [P(kc('kota') + ', ' + dts(tgl), {af:0})] : [issuedT(tgl), sp(160)]), signBox(sg, gap)], {w:SR, nb:1, ml:0})]], [SL, SR], {nb:1});
 
   /* ----- Surat Tugas ----- */
   const ST = () => { const Pt = petugas(s), n = lama(s.tb, s.tk), ds = String(s.dasar || '').split(/;|\n/).map(x => x.trim()).filter(Boolean), sg = signerOf(s, 'stS'), U = untuk(s);
@@ -85,7 +85,7 @@ async function buildDocx(s, v) {
       signArea(s.stTgl || s.tgl, sg, 1300, true)];
   };
   /* ----- SPD ----- */
-  const SPD = () => { const e = pegOf(s), bd = s.bud || {}, n = lama(s.tb, s.tk), F = (s.fol || []).length ? s.fol : [{}, {}], W = [480, 420, 3100, 420, CW - 4420], Z = {sz:20, ln:216}, AB = {ml:50, mr:20};
+  const SPD = e => { const bd = s.bud || {}, n = lama(s.tb, s.tk), F = [{}, {}], W = [480, 420, 3100, 420, CW - 4420], Z = {sz:20, ln:216}, AB = {ml:50, mr:20};
     const r1 = (no, l, val, b) => [C(String(no), {w:W[0], al:'c', ...Z}), C(l, {w:W[1] + W[2], cs:2, ...Z}), C(P([R(val, {b, sz:20})]), {w:W[3] + W[4], cs:2})];
     const ab = (no, rows) => rows.map(([l, val], i) => [...(i === 0 ? [C(String(no), {w:W[0], al:'c', rs:rows.length, ...Z})] : []), C('abc'[i] + '.', {w:W[1], ...Z, ...AB}), C(l, {w:W[2], ...Z}), C('abc'[i] + '.', {w:W[3], ...Z, ...AB}), C(val, {w:W[4], ...Z})]);
     const rows = [r1(1, 'Pejabat Pembuat Komitmen', s.pejabat || c.jabatan, 1), r1(2, 'Nama Pegawai Yang di Perintah', e.nama),
@@ -143,7 +143,7 @@ async function buildDocx(s, v) {
       return a.map(x => bul || isB(x) ? P(unb(x), {...Z, al:'j', ln:LN, num:{reference:'bul', level:bul ? 0 : 1}}) : P(`${++n}.\t${unnum(x)}`, {...Z, al:'j', ln:LN, ind:{left:T2, hanging:T1}, tabs:[{type:'left', position:T2}]})); };
     const LSP = t => { const a = lines(t); return a.length === 1 && !isB(a[0]) && !/^\d+[.)]\s/.test(a[0]) ? J(t) : LS(t); };
     const wkt = r.wkt || `Kegiatan dilaksanakan pada tanggal ${dts(s.tb)} s.d ${dts(s.tk)} di ${s.tujuan || '-'}${s.inst ? ' (' + s.inst + ')' : ''}.`;
-    const dasar = [...(s.stNo ? [`Surat Tugas ${signerOf(s, 'stS').jabatan || c.jabatan} Nomor ${s.stNo}${s.stTgl ? ' tanggal ' + dts(s.stTgl) : ''}`] : []), `Surat Perintah Perjalanan Dinas Nomor ${s.no}`, ...lines(r.dasar)].join('\n');
+    const dasar = [...(s.stNo ? [`Surat Tugas ${signerOf(s, 'stS').jabatan || c.jabatan} Nomor ${s.stNo}${s.stTgl ? ' tanggal ' + dts(s.stTgl) : ''}`] : []), `Surat Perintah Perjalanan Dinas${s.no ? ' Nomor ' + s.no : ''}`, ...lines(r.dasar)].join('\n');
     const keg = r.keg || `${dt(s.tb)} berangkat dari ${s.asal || '-'} ke ${s.tujuan}\n${dt(s.tk)} kembali ke ${s.asal || '-'}`, hasil = r.hasil || [r.h1, r.h2, r.h3].filter(Boolean).join('\n');
     const ttl = maksud1(s).toUpperCase();
     const out = [...kopHdr(600), P('', {...Z, ln:LN}), P('LAPORAN HASIL PERJALANAN DINAS', {...Z, al:'c', ln:LN}), P(ttl, {...Z, al:'c', ln:LN, af:240}),
@@ -167,10 +167,11 @@ async function buildDocx(s, v) {
     : lap
     ? {properties:{page:{...page, margin:{top:1440, bottom:1440, left:1440, right:1440, header:600, footer:420}, pageNumbers:{start:1}}, titlePage:true}, headers:{first:new Header({children:[P('')]}), default:new Header({children:[P([new TextRun({children:[PageNumber.CURRENT], size:SZ, font:AR})], {al:'r'})]})}, footers:{first:new Footer({children:[P('')]}), default:new Footer({children:[P('')]})}, children}
     : {properties:{page}, headers:{default:new Header({children:kopHdr()})}, footers:{default:new Footer({children:[P('')]})}, children};
-  const list = v === 'all' ? ['st', 'sppd', 'lamp', ...(hasB(s) ? ['biaya'] : []), 'lap'] : [v], map = {st:ST, sppd:SPD, lamp:LAMP, biaya:BIAYA};
+  /* SPD per orang (pegawai + tiap pengikut), masing-masing disusul Lampiran SPD-nya */
+  const PS = spdPeople(s), list = v === 'all' ? [['st'], ...PS.flatMap((_, i) => [['sppd', i], ['lamp', i]]), ...(hasB(s) ? [['biaya']] : []), ['lap']] : v === 'sppd' ? PS.map((_, i) => ['sppd', i]) : v === 'lamp' ? PS.map((_, i) => ['lamp', i]) : [[v]];
   const sections = [];
-  for (const k of list) sections.push(k === 'lap' ? sec(await LAP(), true) : sec(map[k](), false, k === 'lamp'));
-  const doc = new Document({creator:'SIM Pegawai & SPPD', title:'Dokumen SPPD ' + s.no, styles:{default:{document:{run:{font:AR, size:SZ}}}}, numbering:{config:[{reference:'bul', levels:[{level:0, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT, style:{paragraph:{indent:{left:1134, hanging:340}}, run:{font:TNR}}}, {level:1, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT, style:{paragraph:{indent:{left:1474, hanging:340}}, run:{font:TNR}}}]}]}, sections});
+  for (const [k, i] of list) sections.push(k === 'lap' ? sec(await LAP(), true) : k === 'sppd' ? sec(SPD(PS[i]), false) : k === 'lamp' ? sec(LAMP(), false, true) : sec(k === 'st' ? ST() : BIAYA(), false));
+  const doc = new Document({creator:'SIM Pegawai & SPPD', title:'Dokumen SPPD ' + (s.no || ''), styles:{default:{document:{run:{font:AR, size:SZ}}}}, numbering:{config:[{reference:'bul', levels:[{level:0, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT, style:{paragraph:{indent:{left:1134, hanging:340}}, run:{font:TNR}}}, {level:1, format:LevelFormat.BULLET, text:'•', alignment:AlignmentType.LEFT, style:{paragraph:{indent:{left:1474, hanging:340}}, run:{font:TNR}}}]}]}, sections});
   return Packer.toBlob(doc);
 }
 async function expDoc(id, v) {
@@ -179,7 +180,7 @@ async function expDoc(id, v) {
   try {
     toast('Menyiapkan dokumen Word…');
     const blob = await buildDocx(s, v), a = document.createElement('a');
-    a.href = URL.createObjectURL(blob); a.download = (nm + '_' + s.no).replace(/[^\w-]/g, '_') + '.docx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    a.href = URL.createObjectURL(blob); a.download = (nm + '_' + (s.no || 'tanpa-nomor')).replace(/[^\w-]/g, '_') + '.docx'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
     log('Unduh Word ' + nm + ' ' + s.no);
   } catch (e) { console.error(e); toast('Gagal membuat Word: ' + (e?.message || e), 'err'); }
 }

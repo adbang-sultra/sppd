@@ -43,3 +43,8 @@
 - [x] Form Laporan: baris diawali "- " menjadi butir (•) di bawah nomor (Kegiatan & Hasil); kolom baru "Keterangan foto" (satu baris = satu foto, disimpan di `rep.fcap`).
 - [x] tests/run-local.js: +4 pemeriksaan (ST tanpa jabatan di badan, Lampiran tanpa kop, struktur laporan, font laporan Tinos). Uji kapasitas 12 laporan × 6 foto ([5]) tidak bisa dijalankan di lingkungan tanpa memori cukup — belum diuji ulang.
 - Catatan: contoh Wakatobi berukuran Letter dengan margin 2,54 cm; template di aplikasi tetap A4 (margin 2,5 cm).
+
+## Perbaikan v1.2.6 (16 Nov 2026)
+- [x] Cetak/Word: Surat Perjalanan Dinas dibuat per orang — pegawai utama + tiap pengikut mendapat SPD sendiri (nama, pangkat/gol, jabatan masing-masing; pangkat pengikut dari data pegawai lewat NIP). Poin 8 (Pengikut) dikosongkan. Paket 'Semua' berurutan: ST → [SPD → Lampiran SPD] per orang → Rincian/Kuitansi → Laporan. Pilihan cetak 'SPD' / 'Lampiran' menghasilkan satu lembar per orang. Nomor SPD sama untuk semua orang (satu data SPPD).
+- [x] Form SPPD: Nomor SPPD dan Tanggal SPPD boleh dikosongkan (tidak wajib *). Cek nomor kembar & klaim nomor cloud hanya berjalan bila nomor diisi; nomor yang dikosongkan melepas klaim lama. Daftar/detail menampilkan "(belum bernomor)".
+- [x] tests/run-local.js: +3 pemeriksaan.

@@ -17,6 +17,10 @@ const pgk = (p, g) => [p, g ? 'Gol. ' + g : ''].filter(Boolean).join(', ');
 /* daftar petugas (pegawai + pengikut) dengan pangkat/golongan; pangkat pengikut diambil dari data pegawai lewat NIP */
 const petugas = s => { const e = pegOf(s), byNip = n => (n && D.emp.find(x => x.nip === n)) || {};
   return [{nama:e.nama, nip:e.nip, jabatan:e.jabatan, pg:pgk(e.pangkat, e.gol)}, ...(s.fol || []).map(f => { const m = byNip(f.nip); return {nama:f.nama, nip:f.nip, jabatan:f.jabatan || m.jabatan, pg:pgk(m.pangkat, f.gol || m.gol)}; })].filter(p => p.nama); };
+/* orang yang masing-masing dibuatkan SPD: pegawai utama lalu tiap pengikut (pangkat pengikut dari data pegawai lewat NIP) */
+const spdPeople = s => { const e = pegOf(s), byNip = n => (n && D.emp.find(x => x.nip === n)) || {};
+  const a = [{nama:e.nama, jabatan:e.jabatan, pangkat:e.pangkat, gol:e.gol}, ...(s.fol || []).map(f => { const m = byNip(f.nip); return {nama:f.nama, jabatan:f.jabatan || m.jabatan, pangkat:m.pangkat, gol:f.gol || m.gol}; })].filter(p => p.nama);
+  return a.length ? a : [{}]; };
 /* NIP 18 digit ditulis berkelompok seperti surat resmi: 19940702 202504 2 006 */
 const fmtNip = n => { const d = String(n || '').replace(/\s+/g, ''); return /^\d{18}$/.test(d) ? `${d.slice(0, 8)} ${d.slice(8, 14)} ${d.slice(14, 15)} ${d.slice(15)}` : String(n || ''); };
 /* "Untuk" pada Surat Tugas: baris pertama Maksud = uraian; baris berikutnya = daftar bernomor (mis. OPD yang dikunjungi) */
@@ -31,7 +35,7 @@ addEventListener('resize', fitPaper);
 function dLap(s) {
   const c = D.cfg, r = D.rep.find(x => x.sppdId === s.id) || {}, P = petugas(s), ttl = '<div class="lt">LAPORAN HASIL PERJALANAN DINAS<br>' + esc(maksud1(s).toUpperCase()) + '</div>';
   const wkt = r.wkt || `Kegiatan dilaksanakan pada tanggal ${dts(s.tb)} s.d ${dts(s.tk)} di ${s.tujuan || '-'}${s.inst ? ' (' + s.inst + ')' : ''}.`;
-  const dasar = [...(s.stNo ? [`Surat Tugas ${signerOf(s, 'stS').jabatan || c.jabatan} Nomor ${s.stNo}${s.stTgl ? ' tanggal ' + dts(s.stTgl) : ''}`] : []), `Surat Perintah Perjalanan Dinas Nomor ${s.no}`, ...lines(r.dasar)].join('\n');
+  const dasar = [...(s.stNo ? [`Surat Tugas ${signerOf(s, 'stS').jabatan || c.jabatan} Nomor ${s.stNo}${s.stTgl ? ' tanggal ' + dts(s.stTgl) : ''}`] : []), `Surat Perintah Perjalanan Dinas${s.no ? ' Nomor ' + s.no : ''}`, ...lines(r.dasar)].join('\n');
   const keg = r.keg || `${dt(s.tb)} berangkat dari ${s.asal || '-'} ke ${s.tujuan}\n${dt(s.tk)} kembali ke ${s.asal || '-'}`;
   const hasil = r.hasil || [r.h1, r.h2, r.h3].filter(Boolean).join('\n'), Fo = (r.foto || []).map(okImg).filter(Boolean), FC = String(r.fcap || '').split('\n').map(x => x.trim());
   return `<div class="paper lap">${kop()}${ttl}${lh1('I.', 'PENDAHULUAN')}${lh2('A.', 'Latar Belakang')}${pj(r.latar)}${lh2('B.', 'Dasar Hukum')}${lst(dasar)}${lh2('C.', 'Maksud dan Tujuan')}${pj(r.mt || maksud1(s))}${lh2('D.', 'Waktu Pelaksanaan')}${pj(wkt)}${lh1('II.', 'KEGIATAN YANG DILAKSANAKAN')}${lstp(keg)}${lh1('III.', 'HASIL YANG DICAPAI')}${lstp(hasil)}${lh1('IV.', 'KESIMPULAN DAN SARAN')}${lh2('1.', 'Kesimpulan:')}${lst(r.kes, 1)}${lh2('2.', 'Saran')}${lst(r.tl, 1)}${lh1('V.', 'PENUTUP')}${pj(r.penutup || 'Demikian Laporan Hasil Perjalanan Dinas ini disusun untuk dipergunakan sebagaimana mestinya.')}
