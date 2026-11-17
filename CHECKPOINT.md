@@ -48,3 +48,10 @@
 - [x] Cetak/Word: Surat Perjalanan Dinas dibuat per orang — pegawai utama + tiap pengikut mendapat SPD sendiri (nama, pangkat/gol, jabatan masing-masing; pangkat pengikut dari data pegawai lewat NIP). Poin 8 (Pengikut) dikosongkan. Paket 'Semua' berurutan: ST → [SPD → Lampiran SPD] per orang → Rincian/Kuitansi → Laporan. Pilihan cetak 'SPD' / 'Lampiran' menghasilkan satu lembar per orang. Nomor SPD sama untuk semua orang (satu data SPPD).
 - [x] Form SPPD: Nomor SPPD dan Tanggal SPPD boleh dikosongkan (tidak wajib *). Cek nomor kembar & klaim nomor cloud hanya berjalan bila nomor diisi; nomor yang dikosongkan melepas klaim lama. Daftar/detail menampilkan "(belum bernomor)".
 - [x] tests/run-local.js: +3 pemeriksaan.
+
+## Perbaikan v1.2.7 (17 Nov 2026)
+- [x] Laporan: tombol "Buat Isi Laporan dengan AI" (api/ai.js; env AI_API_KEY dst — lihat README). Hasil AI mengisi textarea biasa (bisa diedit); bagian terisi tidak ditimpa kecuali dicentang. Tes memakai tiruan /api/ai di tests/server.js (kode uji 'kode-uji').
+- [x] Peran baru 'kepala' (Pimpinan): koleksi baru `apr` (id, sppdId, doc st|spd|lap, mode ttd|manual, by, nama, jab, nip, at); NIP + gambar tanda tangan disimpan di record ACL pengguna. Menu Persetujuan; TTD elektronik tampil di cetak & Word (ST, SPD+Lampiran, Laporan); opsi manual = penanda status. SQL: peran 'kepala' + kolom 'apr' (BELUM diuji di PostgreSQL — psql tidak tersedia di lingkungan pengembangan).
+- [x] Data SPPD/Rekap/Dashboard: pengikut ikut dihitung (orang(s)); CSV ada kolom Pengikut.
+- [x] Menu gabungan: peng (Instansi + Tampilan & Tema, 2 kolom) dan akses (Pengguna + Backup satu halaman); alamat lama #set/#tampil/#user/#bak dialihkan.
+- Belum diuji: tes cloud (run-cloud), tes kapasitas [5], Word di MS Word/WPS.

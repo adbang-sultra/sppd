@@ -1,4 +1,4 @@
-# SIM Pegawai & SPPD — v1.2.6
+# SIM Pegawai & SPPD — v1.2.7
 
 Aplikasi statis (tanpa server). Deploy ke Vercel: `vercel --prod` di folder ini, atau unggah ke GitHub → Import Project (Framework: **Other**, tanpa build command).
 Harus dibuka lewat **HTTPS** (atau localhost) karena memakai Web Crypto.
@@ -111,3 +111,31 @@ Data lama otomatis dienkripsi saat **Administrator masuk pertama kali**. Akun Op
 
 ## Mengubah kelas Tailwind
 Bila menambah kelas Tailwind baru di JS: `npx tailwindcss@3.4.17 -i in.css -o css/tw.css --minify` (in.css berisi `@tailwind base; @tailwind components; @tailwind utilities;`).
+
+
+## Fitur v1.2.7
+
+### Asisten AI untuk Laporan
+Menu **Laporan Perjalanan** → isi *Hasil yang Dicapai* → klik **Buat Isi Laporan dengan AI**. AI mengisi Latar Belakang, Maksud dan Tujuan, Kegiatan, Kesimpulan, Saran, dan Penutup; semuanya bisa diedit sebelum disimpan (centang *Timpa isian* untuk mengganti bagian yang sudah terisi). Dasar Hukum tidak dibuat AI.
+Fungsi server: `api/ai.js` (Vercel Serverless). Atur **Environment Variables** di Vercel, lalu *Redeploy*:
+
+| Variabel | Keterangan |
+|---|---|
+| `AI_API_KEY` | wajib — kunci API penyedia AI (jangan taruh di `js/config.js`) |
+| `AI_PROVIDER` | `gemini` (bawaan) · `anthropic` · `groq` · `openai` |
+| `AI_MODEL` | nama model (periksa dokumentasi penyedia; bila kosong dipakai nilai bawaan di `api/ai.js`) |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | mode cloud: sesi Admin/Operator diperiksa ke Supabase |
+| `AI_ACCESS_CODE` | mode lokal: kode akses yang diketik pengguna saat pertama memakai fitur AI |
+
+Yang dikirim ke penyedia AI hanya teks maksud, tujuan, tanggal, dan hasil yang diketik; nama/NIP pegawai tidak dikirim. Hasil AI wajib diperiksa manusia.
+
+### Akun Pimpinan (Kepala OPD) & tanda tangan elektronik
+- Admin: **Pengguna & Backup → Tambah/Ubah pengguna** → peran *Pimpinan (Kepala OPD)* → isi **NIP** (dicocokkan dengan penanda tangan SPPD) dan unggah **gambar tanda tangan**.
+- Pimpinan masuk → menu **Persetujuan** → **Setujui & TTD** pada Surat Tugas / SPD / Laporan miliknya. Gambar tanda tangan + catatan "Disetujui secara elektronik" otomatis tampil di cetak dan Word. Persetujuan gugur bila penanda tangan SPPD diganti.
+- Bila surat/laporan ditandatangani basah: Admin/Operator memakai **Tandai disetujui (manual)** — hanya menandai status, tanpa gambar tanda tangan.
+- Batas: ini tanda tangan berupa gambar + jejak persetujuan, **bukan** tanda tangan digital bersertifikat. Di mode lokal peran hanya diperiksa aplikasi di browser; pembatasan sungguhan memerlukan Penyimpanan Cloud.
+- **Pengguna cloud: jalankan ulang `supabase/schema-sppd.sql` di SQL Editor** (menambah peran `kepala` dan koleksi `apr`; aman dijalankan ulang) sebelum membuat akun Pimpinan.
+
+### Lain-lain
+- Menu **Pengaturan** = Instansi + Tampilan & Tema (tab); **Pengguna & Backup** = satu halaman.
+- Data SPPD, Rekapitulasi, dan Dashboard menghitung **pengikut**; biaya SPPD dibagi rata per orang pada tabel Pegawai/Jabatan.

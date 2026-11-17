@@ -10,6 +10,9 @@ const canW = () => Auth.can('w'), isA = () => Auth.can('a');
 const PEGF = ['nama','nip','pangkat','gol','jabatan','unit'], SGF = ['nama','nip','jabatan','pangkat'];
 /* Data pegawai pada SPPD: salinan saat SPPD disimpan (dokumen lama tidak ikut berubah bila pangkat/jabatan pegawai berubah) */
 const pegOf = s => s?.peg?.nama ? s.peg : (emp(s?.empId) || {});
+/* v1.2.7: semua orang dalam satu SPPD = pegawai utama + pengikut (petugas() ada di report.js) */
+const orang = s => petugas(s), ikut = (s, id) => { const q = emp(id); return !!q && orang(s).some(p => (q.nip && p.nip === q.nip) || (p.nama && p.nama === q.nama)); };
+const pegCell = x => { const o = orang(x), l = o[0]?.nama || pegOf(x).nama || ''; return esc(l) + (o.length > 1 ? `<small class="muted ikut">+ ${o.length - 1} pengikut: ${esc(o.slice(1).map(p => p.nama).join('; '))}</small>` : ''); };
 /* Penanda tangan dokumen: pilihan per SPPD (stS = Surat Tugas, spdS = SPD) — pejabat bawaan, Kepala OPD, atau penanda tangan lain */
 const signerOf = (s, k) => s?.[k] && (s[k].nama || s[k].jabatan) ? s[k] : {nama:D.cfg.pejabat, nip:D.cfg.nip, jabatan:D.cfg.jabatan, pangkat:D.cfg.pangkat};
 const totB = s => (s?.biaya || []).reduce((n, x) => n + (+x.vol || 0) * (+x.hrg || 0), 0);
@@ -46,12 +49,13 @@ CLEAN.sppd = v => arr(v).map(o => { const r = {id:withId(o), ...pick(o, SF, 1000
   r.biaya = arr(o.biaya, 40).map(x => ({ur:txt(x.ur, 200), vol:clamp(x.vol, 0, 1e6, 0), sat:txt(x.sat, 30), hrg:clamp(x.hrg, 0, 1e12, 0)})).filter(x => x.ur);
   r.ts = tsOf(o); return r; });
 CLEAN.rep = v => arr(v).map(o => ({id:withId(o), sppdId:okId(o.sppdId) ? o.sppdId : '', status:o.status === 'selesai' ? 'selesai' : 'draft', ...pick(o, RF, 8000), tgl:okDate(o.tgl), foto:(Array.isArray(o.foto) ? o.foto : []).map(okImg).filter(Boolean).slice(0, 6), ts:tsOf(o)}));
+CLEAN.apr = v => arr(v, 3000).map(o => ({id:withId(o), sppdId:okId(o.sppdId) ? o.sppdId : '', doc:['st', 'spd', 'lap'].includes(o.doc) ? o.doc : 'st', mode:o.mode === 'manual' ? 'manual' : 'ttd', by:okId(o.by) ? o.by : '', nama:txt(o.nama, 120), jab:txt(o.jab, 200), nip:txt(o.nip, 30), at:okDate(o.at), ts:tsOf(o)})).filter(o => o.sppdId);
 CLEAN.log = v => arr(v, 2000).map(o => ({...pick(o, ['t','u','m'], 300), id:withId(o), ts:clamp(o.ts, 0, 1e14, 0)}));
 const CFX = ['kop1','kop2','kop3','kota','ttdLbl','ttdTag','bendahara','nipBend','pangkat'], CFS = ['kopMode','ttdMode'];
 CLEAN.cfg = v => { v = v && typeof v === 'object' ? v : {}; const r = {...structuredClone(DEF.cfg)}; [...CF.map(c => c[0]), ...CFX].forEach(k => { if (own(v, k)) r[k] = txt(v[k], 300); }); if (own(v, 'ttdNote')) r.ttdNote = txt(v.ttdNote, 2000); if (v.kopMode === 'gambar' || v.kopMode === 'teks') r.kopMode = v.kopMode; if (v.ttdMode === 'tte' || v.ttdMode === 'basah') r.ttdMode = v.ttdMode; r.logo = okImg(v.logo); r.kopImg = okImg(v.kopImg); r.signers = arr(v.signers, 20).map(x => pick(x, SGF)).filter(x => x.nama || x.jabatan); r.kopd = arr(v.kopd, 50).map(x => pick(x, SGF)).filter(x => x.nama || x.jabatan); if (v.ui && typeof v.ui === 'object') r.ui = cleanUI(v.ui); return r; };
 
 /* ---------- Status & filter ---------- */
-const ST = {emp:{q:'', pg:1, jk:'', gol:'', jab:''}, prog:{q:'', pg:1, ta:''}, sppd:{q:'', pg:1, st:'', a:'', b:'', e:''}, rekap:{a:'', b:'', e:'', t:''}, cetak:{id:'', v:'all'}, lap:{id:''}};
+const ST = {emp:{q:'', pg:1, jk:'', gol:'', jab:''}, prog:{q:'', pg:1, ta:''}, sppd:{q:'', pg:1, st:'', a:'', b:'', e:''}, rekap:{a:'', b:'', e:'', t:''}, cetak:{id:'', v:'all'}, lap:{id:''}, apr:{q:'', pg:1, st:''}};
 const setST = (k, f, v) => { if (own(ST, k) && own(ST[k], f) && f !== 'pg') { ST[k][f] = txt(v, 100); if (own(ST[k], 'pg')) ST[k].pg = 1; } };
 const pager = (k, n) => { const p = Math.max(1, Math.ceil(n / PS)); ST[k].pg = Math.min(ST[k].pg, p); return `<div class="pager"><span>${n} data</span><span class="pg">${b('', 'pg', {k, d:-1}, 'ib sm', 'chevl')}<b>${ST[k].pg} / ${p}</b>${b('', 'pg', {k, d:1}, 'ib sm', 'chevr')}</span></div>`; };
 act('pg', el => { const k = el.dataset.k; if (own(ST, k)) { ST[k].pg = Math.max(1, ST[k].pg + (el.dataset.d === '1' ? 1 : -1)); render(); } });
@@ -90,7 +94,7 @@ async function del(k, id) {
   if (k === 'emp' && D.sppd.some(s => s.empId === id)) return toast('Pegawai dipakai pada SPPD, tidak dapat dihapus', 'err');
   if (k === 'prog' && D.sppd.some(s => s.progId === id) && !(await ask('Program dipakai SPPD (data SPPD tetap menyimpan salinan). Lanjutkan hapus?'))) return;
   if (!(await ask('Yakin menghapus data ' + NM[k] + ' ini?', 'Hapus'))) return;
-  if (k === 'sppd') { const x = D.sppd.find(s => s.id === id); if (Cloud.on && x?.no) Cloud.claim(null, x.no).catch(() => {}); D.rep = D.rep.filter(r => r.sppdId !== id); save('rep'); }
+  if (k === 'sppd') { const x = D.sppd.find(s => s.id === id); if (Cloud.on && x?.no) Cloud.claim(null, x.no).catch(() => {}); D.rep = D.rep.filter(r => r.sppdId !== id); save('rep'); D.apr = D.apr.filter(a => a.sppdId !== id); save('apr'); }
   D[k] = D[k].filter(x => x.id !== id); save(k); log('Menghapus data ' + NM[k]); toast('Data dihapus'); render();
 }
 function detail(k, id) { const d = D[k].find(x => x.id === id); if (!d) return; modal('Detail ' + NM[k], `<div class="kv">${F[k].map(f => `<div><span>${esc(f[1])}</span><b>${esc(d[f[0]]) || '-'}</b></div>`).join('')}</div>`); }
@@ -129,7 +133,8 @@ act('expCSV', el => own(F, el.dataset.k) && expCSV(el.dataset.k));
 /* ---------- Halaman ---------- */
 const pages = {};
 const bars = e => { const mx = Math.max(1, ...e.map(x => x[1])); return e.length ? `<div class="bars">${e.map(([k, v]) => `<div class="bar"><span class="bl" title="${esc(k)}">${esc(k)}</span><span class="bt"><i data-w="${v / mx * 100}"></i></span><b>${v}</b></div>`).join('')}</div>` : '<p class="muted sm">Belum ada data</p>'; };
-const grp = (a, fn) => { const m = {}; a.forEach(s => { const k = fn(s) || '-'; m[k] = m[k] || {n:0, d:0, b:0}; m[k].n++; m[k].d += lama(s.tb, s.tk); m[k].b += totB(s); }); return Object.entries(m).sort((x, y) => y[1].n - x[1].n); };
+/* fn boleh mengembalikan larik kunci (mis. semua orang di SPPD): tiap kunci dihitung, biaya dibagi rata */
+const grp = (a, fn) => { const m = {}; a.forEach(s => { const r = fn(s), ks = (Array.isArray(r) ? r : [r]); (ks.length ? ks : [null]).forEach(kk => { const k = kk || '-'; m[k] = m[k] || {n:0, d:0, b:0}; m[k].n++; m[k].d += lama(s.tb, s.tk); m[k].b += totB(s) / Math.max(1, ks.length); }); }); return Object.entries(m).sort((x, y) => y[1].n - x[1].n); };
 const kpi = (l, v, ic, sub, tone = 0) => `<div class="kpi t${tone}"><span class="kpi-i">${I(ic)}</span><div><div class="kpi-v" data-count="${v}">0</div><div class="kpi-l">${esc(l)}</div>${sub ? `<div class="kpi-s">${sub}</div>` : ''}</div></div>`;
 
 pages.dash = () => {
@@ -140,10 +145,10 @@ pages.dash = () => {
   const run = S.filter(s => s.tb <= t && s.tk >= t), noRep = S.filter(s => stRep(s.id) !== 'Selesai').length;
   return `<section class="hero">
     <div class="hero-txt"><div class="hello">${hr < 11 ? 'Selamat pagi' : hr < 15 ? 'Selamat siang' : hr < 18 ? 'Selamat sore' : 'Selamat malam'},</div><h2>${esc(u?.name)}</h2><p>${esc(dt(t))} · ${esc(D.cfg.instansi)}</p>
-      <div class="hero-act">${canW() ? b('SPPD Baru', 'go', {r:'form'}, 'btn', 'plus') : ''}${b('Cetak Dokumen', 'go', {r:'cetak'}, 'btn2 glass', 'printer')}${b('Rekapitulasi', 'go', {r:'rekap'}, 'btn2 glass', 'chart')}</div></div>
+      <div class="hero-act">${canW() ? b('SPPD Baru', 'go', {r:'form'}, 'btn', 'plus') : ''}${b('Cetak Dokumen', 'go', {r:'cetak'}, 'btn2 glass', 'printer')}${b('Rekapitulasi', 'go', {r:'rekap'}, 'btn2 glass', 'chart')}${Auth.allow('apr') ? b('Persetujuan', 'go', {r:'apr'}, 'btn2 glass', 'pen') : ''}</div></div>
     <div class="hero-art" aria-hidden="true">${I('plane', 'hp')}<svg class="hero-path" viewBox="0 0 300 120"><path d="M5 110 C 80 100, 120 20, 295 12"/></svg></div>
   </section>
-  <div class="kpis">${kpi('Total Pegawai', tot, 'users', `${L} laki-laki · ${P} perempuan`, 0)}${kpi('SPPD Diterbitkan', S.length, 'receipt', `${S.filter(s => (s.tgl || s.tb || '').slice(0, 7) === m).length} bulan ini`, 1)}${kpi('Sedang Bertugas', run.length, 'plane', run.length ? esc(run.slice(0, 2).map(s => pegOf(s).nama || '').join(', ')) : 'Tidak ada perjalanan hari ini', 2)}${kpi('Laporan Belum Selesai', noRep, 'file', noRep ? 'Perlu dilengkapi' : 'Semua lengkap', 3)}</div>
+  <div class="kpis">${kpi('Total Pegawai', tot, 'users', `${L} laki-laki · ${P} perempuan`, 0)}${kpi('SPPD Diterbitkan', S.length, 'receipt', `${S.filter(s => (s.tgl || s.tb || '').slice(0, 7) === m).length} bulan ini`, 1)}${kpi('Sedang Bertugas', run.reduce((n, s) => n + orang(s).length, 0), 'plane', run.length ? `${run.length} SPPD · ` + esc(run.flatMap(s => orang(s).map(p => p.nama)).slice(0, 3).join(', ')) : 'Tidak ada perjalanan hari ini', 2)}${kpi('Laporan Belum Selesai', noRep, 'file', noRep ? 'Perlu dilengkapi' : 'Semua lengkap', 3)}</div>
   <div class="dgrid">
     <div class="card span2">${cardH('Perjalanan per Bulan ' + y, 'calendar', `<span class="chip">${S.filter(s => s.tb.slice(0, 4) == y).length} perjalanan</span>`)}<div class="cols">${bln.map(([n, v], i) => `<div class="colw ${i === cm ? 'now' : ''}" title="${n}: ${v}"><span class="cv">${v || ''}</span><span class="ct"><i data-w="${v / mx * 100}"></i></span><span class="cl">${n}</span></div>`).join('')}</div></div>
     <div class="card">${cardH('Komposisi Pegawai', 'users')}<div class="donutw"><div class="donut" data-p="${tot ? L / tot * 100 : 0}"><div><b data-count="${tot}">0</b><span>pegawai</span></div></div><ul class="lg2"><li><i class="d1"></i>Laki-laki <b>${L}</b></li><li><i class="d2"></i>Perempuan <b>${P}</b></li></ul></div></div>
@@ -255,9 +260,9 @@ act('biaDel', el => { BIA.splice(+el.dataset.i, 1); biaRender(); });
 act('openSppd', el => openSppd(el.dataset.id), 'w');
 pages.sppd = () => {
   const s = ST.sppd, q = s.q.toLowerCase();
-  const a = D.sppd.filter(x => (!q || (x.no + x.tujuan + x.maksud + (pegOf(x).nama || '')).toLowerCase().includes(q)) && (!s.st || stRep(x.id) === s.st) && (!s.a || x.tb >= s.a) && (!s.b || x.tb <= s.b) && (!s.e || x.empId === s.e)).sort((x, y) => y.tb.localeCompare(x.tb));
+  const a = D.sppd.filter(x => (!q || (x.no + x.tujuan + x.maksud + orang(x).map(p => p.nama).join(' ')).toLowerCase().includes(q)) && (!s.st || stRep(x.id) === s.st) && (!s.a || x.tb >= s.a) && (!s.b || x.tb <= s.b) && (!s.e || ikut(x, s.e))).sort((x, y) => y.tb.localeCompare(x.tb));
   return `<div class="card"><div class="toolbar">${inp('sppd', 'q', 'Cari nomor / pegawai / tujuan')}${selE('sppd', 'e')}${sel('sppd', 'st', ['Belum dibuat', 'Draft', 'Selesai'], 'Semua Status Laporan')}<span class="rng">${inp('sppd', 'a', 'Dari tanggal', 'date')}<span>s/d</span>${inp('sppd', 'b', 'Sampai tanggal', 'date')}</span>${b('Reset', 'sppdReset', {}, 'btn2', 'refresh')}<span class="grow"></span>${canW() ? b('Tambah SPPD', 'openSppd', {}, 'btn', 'plus') : ''}</div>
-  ${table(['No', 'Nomor SPPD', 'Pegawai', 'Tujuan', 'Maksud', 'Berangkat', 'Kembali', 'Lama', 'Laporan', 'Aksi'], sl('sppd', a).map((x, i) => [(s.pg - 1) * PS + i + 1, (x.no ? `<b>${esc(x.no)}</b>` : '<span class="muted">(belum bernomor)</span>'), esc(pegOf(x).nama), esc(x.tujuan), esc(x.maksud), dts(x.tb), dts(x.tk), lama(x.tb, x.tk) + ' hr', badge(stRep(x.id)), rowAct([iBtn('sDet', {id:x.id}, 'eye', 'Detail'), canW() && iBtn('openSppd', {id:x.id}, 'edit', 'Ubah'), iBtn('toCetak', {id:x.id}, 'printer', 'Cetak'), canW() && iBtn('del', {k:'sppd', id:x.id}, 'trash', 'Hapus', 'ib sm danger')])]))}${pager('sppd', a.length)}</div>`;
+  ${table(['No', 'Nomor SPPD', 'Pegawai', 'Tujuan', 'Maksud', 'Berangkat', 'Kembali', 'Lama', 'Laporan', 'Persetujuan', 'Aksi'], sl('sppd', a).map((x, i) => [(s.pg - 1) * PS + i + 1, (x.no ? `<b>${esc(x.no)}</b>` : '<span class="muted">(belum bernomor)</span>'), pegCell(x), esc(x.tujuan), esc(x.maksud), dts(x.tb), dts(x.tk), lama(x.tb, x.tk) + ' hr', badge(stRep(x.id)), aprChips(x), rowAct([iBtn('sDet', {id:x.id}, 'eye', 'Detail'), canW() && iBtn('openSppd', {id:x.id}, 'edit', 'Ubah'), iBtn('toCetak', {id:x.id}, 'printer', 'Cetak'), canW() && iBtn('del', {k:'sppd', id:x.id}, 'trash', 'Hapus', 'ib sm danger')])]))}${pager('sppd', a.length)}</div>`;
 };
 act('sppdReset', () => { ST.sppd = {q:'', pg:1, st:'', a:'', b:'', e:''}; render(); });
 act('toCetak', el => { ST.cetak.id = el.dataset.id; go('cetak'); });
@@ -274,40 +279,42 @@ onCh('cetakSel', el => { ST.cetak.id = el.value; render(); });
 pages.cetak = () => {
   const s = D.sppd.find(x => x.id === ST.cetak.id), v = ST.cetak.v;
   const tab = (k, l, ic) => `<button class="seg ${v === k ? 'on' : ''}" data-act="cetakTab" data-v="${k}">${I(ic)}<span>${l}</span></button>`;
-  return `<div class="card mb-3"><div class="toolbar">${sppdSel('cetak', 'cetakSel')}<div class="segs">${tab('st', 'Surat Tugas', 'file')}${tab('sppd', 'Lembar SPD', 'receipt')}${tab('lamp', 'Lampiran', 'layers')}${tab('biaya', 'Biaya & Kuitansi', 'wallet')}${tab('lap', 'Laporan', 'clipboard')}${tab('all', 'Paket Lengkap', 'folder')}</div><span class="grow"></span>${s ? b('Unduh Word', 'expDocW', {}, 'btn2', 'word') : ''}${b('Cetak / Simpan PDF', 'printNow', {}, 'btn', 'printer')}</div><p class="muted sm mt-2">${I('info')} Untuk PDF, pilih "Simpan sebagai PDF" pada dialog cetak (ukuran A4, matikan "Header dan footer"). Ruang tanda tangan dibiarkan kosong untuk ditandatangani manual.</p></div>${s ? `<div class="paperw">${docs(s, v)}</div>` : `<div class="card empty-st">${I('printer', 'big')}<p>Pilih nomor SPPD untuk pratinjau dokumen</p></div>`}`;
+  return `<div class="card mb-3"><div class="toolbar">${sppdSel('cetak', 'cetakSel')}<div class="segs">${tab('st', 'Surat Tugas', 'file')}${tab('sppd', 'Lembar SPD', 'receipt')}${tab('lamp', 'Lampiran', 'layers')}${tab('biaya', 'Biaya & Kuitansi', 'wallet')}${tab('lap', 'Laporan', 'clipboard')}${tab('all', 'Paket Lengkap', 'folder')}</div><span class="grow"></span>${s ? b('Unduh Word', 'expDocW', {}, 'btn2', 'word') : ''}${b('Cetak / Simpan PDF', 'printNow', {}, 'btn', 'printer')}</div><p class="muted sm mt-2">${I('info')} Untuk PDF, pilih "Simpan sebagai PDF" pada dialog cetak (ukuran A4, matikan "Header dan footer"). Ruang tanda tangan dibiarkan kosong untuk ditandatangani manual, kecuali dokumen yang sudah disetujui pimpinan dengan tanda tangan elektronik.</p>${s ? `<p class="muted sm mt-2">Persetujuan pimpinan: ${aprChips(s)}</p>` : ''}</div>${s ? `<div class="paperw">${docs(s, v)}</div>` : `<div class="card empty-st">${I('printer', 'big')}<p>Pilih nomor SPPD untuk pratinjau dokumen</p></div>`}`;
 };
 
 /* ---------- Rekap ---------- */
-const rekapData = () => { const s = ST.rekap; return D.sppd.filter(x => (!s.a || x.tb >= s.a) && (!s.b || x.tb <= s.b) && (!s.e || x.empId === s.e) && (!s.t || x.tujuan.toLowerCase().includes(s.t.toLowerCase()))); };
+const rekapData = () => { const s = ST.rekap; return D.sppd.filter(x => (!s.a || x.tb >= s.a) && (!s.b || x.tb <= s.b) && (!s.e || ikut(x, s.e)) && (!s.t || x.tujuan.toLowerCase().includes(s.t.toLowerCase()))); };
 const rekapHtml = pr => {
-  const A = rekapData(), G = [['Bulan', s => s.tb.slice(0, 7)], ['Tahun', s => s.tb.slice(0, 4)], ['Pegawai', s => pegOf(s).nama], ['Jabatan', s => pegOf(s).jabatan], ['Tujuan', s => s.tujuan], ['Program', s => s.bud?.program], ['Kegiatan', s => s.bud?.kegiatan], ['Sumber Dana', s => s.bud?.sumber]];
+  const A = rekapData(), G = [['Bulan', s => s.tb.slice(0, 7)], ['Tahun', s => s.tb.slice(0, 4)], ['Pegawai', s => orang(s).map(p => p.nama)], ['Jabatan', s => orang(s).map(p => p.jabatan)], ['Tujuan', s => s.tujuan], ['Program', s => s.bud?.program], ['Kegiatan', s => s.bud?.kegiatan], ['Sumber Dana', s => s.bud?.sumber]];
   const tb = A.reduce((n, x) => n + totB(x), 0), ids = new Set(A.map(x => x.progId).filter(Boolean));
-  const k = [['Total perjalanan', A.length, 'plane'], ['Total hari', A.reduce((n, x) => n + lama(x.tb, x.tk), 0), 'calendar'], ['Pegawai bepergian', new Set(A.map(x => x.empId)).size, 'users'], ['Belum ada laporan', A.filter(x => stRep(x.id) !== 'Selesai').length, 'file']];
+  const k = [['Total perjalanan', A.length, 'plane'], ['Total hari', A.reduce((n, x) => n + lama(x.tb, x.tk), 0), 'calendar'], ['Pegawai bepergian', new Set(A.flatMap(x => orang(x).map(p => p.nip || p.nama))).size, 'users'], ['Belum ada laporan', A.filter(x => stRep(x.id) !== 'Selesai').length, 'file']];
   /* Realisasi anggaran: biaya seluruh SPPD pada kegiatan itu (tidak terpengaruh filter tanggal) dibanding pagu */
   const R = D.prog.filter(p => +p.pagu || ids.has(p.id)).map(p => { const pagu = +p.pagu || 0, r = realisasi(p.id), pc = pagu ? r / pagu * 100 : 0; return [esc(p.ta), esc(p.kegiatan + (p.sub ? ' — ' + p.sub : '')), rupiah(pagu), rupiah(r), `<span class="${pagu - r < 0 ? 'neg' : ''}">${rupiah(pagu - r)}</span>`, pagu ? (pr ? Math.round(pc) + '%' : `<span class="pbar ${pc > 100 ? 'over' : ''}"><i data-w="${Math.min(100, pc)}"></i></span> ${Math.round(pc)}%`) : '-']; });
   return `<div class="kpis">${k.map((x, i) => pr ? `<div class="kpi"><div><div class="kpi-v">${x[1]}</div><div class="kpi-l">${x[0]}</div></div></div>` : kpi(x[0], x[1], x[2], '', i)).join('')}</div>
   <div class="card mt-3">${cardH('Biaya Perjalanan', 'wallet', `<span class="chip">${rupiah(tb)}</span>`)}<p class="muted sm">Total rincian biaya dari ${A.filter(x => totB(x)).length} SPPD pada rentang ini (${A.filter(x => !totB(x)).length} SPPD belum diisi biayanya).</p></div>
   <div class="card mt-3">${cardH('Realisasi Anggaran per Kegiatan', 'chart')}${table(['TA', 'Kegiatan', 'Pagu', 'Realisasi', 'Sisa', 'Terpakai'], R, 'keep')}</div>
-  <div class="dgrid g2">${G.map(g => `<div class="card">${cardH('Berdasarkan ' + g[0])}${table([g[0], 'Frekuensi', 'Hari', 'Biaya'], grp(A, g[1]).map(([kk, v]) => [esc(kk), v.n, v.d, rupiah(v.b)]), 'keep')}</div>`).join('')}</div><div class="card mt-3">${cardH('SPPD Belum Memiliki Laporan Selesai', 'alert')}${table(['Nomor', 'Pegawai', 'Tujuan', 'Status'], A.filter(x => stRep(x.id) !== 'Selesai').map(x => [esc(x.no), esc(pegOf(x).nama), esc(x.tujuan), badge(stRep(x.id))]))}</div>`;
+  <div class="dgrid g2">${G.map(g => `<div class="card">${cardH('Berdasarkan ' + g[0])}${table([g[0], 'Frekuensi', 'Hari', 'Biaya'], grp(A, g[1]).map(([kk, v]) => [esc(kk), v.n, v.d, rupiah(v.b)]), 'keep')}</div>`).join('')}</div><p class="muted sm mt-2">${I('info')} Tabel Pegawai & Jabatan menghitung pegawai utama <b>dan pengikut</b>; biaya satu SPPD dibagi rata per orang.</p><div class="card mt-3">${cardH('SPPD Belum Memiliki Laporan Selesai', 'alert')}${table(['Nomor', 'Pegawai', 'Tujuan', 'Status'], A.filter(x => stRep(x.id) !== 'Selesai').map(x => [esc(x.no), esc(pegOf(x).nama), esc(x.tujuan), badge(stRep(x.id))]))}</div>`;
 };
 pages.rekap = () => `<div class="card mb-3"><div class="toolbar"><span class="rng">${inp('rekap', 'a', 'Dari tanggal', 'date')}<span>s/d</span>${inp('rekap', 'b', 'Sampai tanggal', 'date')}</span>${selE('rekap', 'e')}${inp('rekap', 't', 'Filter tujuan')}<span class="grow"></span>${b('Ekspor CSV', 'expRekap', {}, 'btn2', 'download')}${b('Cetak / PDF', 'printRekap', {}, 'btn', 'printer')}</div></div>${rekapHtml()}`;
 act('printRekap', () => printHtml(`<div class="paper rk"><h3 class="d-h">REKAPITULASI PERJALANAN DINAS</h3>${rekapHtml(true)}</div>`));
-act('expRekap', () => dl('rekap_sppd.csv', toCSV([['Nomor', 'Pegawai', 'NIP', 'Jabatan', 'Tujuan', 'Berangkat', 'Kembali', 'Hari', 'Program', 'Kegiatan', 'Sumber Dana', 'Total Biaya', 'Laporan'], ...rekapData().map(x => { const e = pegOf(x), bd = x.bud || {}; return [x.no, e.nama, e.nip, e.jabatan, x.tujuan, x.tb, x.tk, lama(x.tb, x.tk), bd.program, bd.kegiatan, bd.sumber, totB(x), stRep(x.id)]; })])));
+act('expRekap', () => dl('rekap_sppd.csv', toCSV([['Nomor', 'Pegawai', 'NIP', 'Jabatan', 'Pengikut', 'Jumlah Orang', 'Tujuan', 'Berangkat', 'Kembali', 'Hari', 'Program', 'Kegiatan', 'Sumber Dana', 'Total Biaya', 'Laporan'], ...rekapData().map(x => { const e = pegOf(x), bd = x.bud || {}; return [x.no, e.nama, e.nip, e.jabatan, orang(x).slice(1).map(p => p.nama).join('; '), orang(x).length, x.tujuan, x.tb, x.tk, lama(x.tb, x.tk), bd.program, bd.kegiatan, bd.sumber, totB(x), stRep(x.id)]; })])));
 
 /* ---------- Pengaturan instansi ---------- */
 pages.set = () => { const c = D.cfg, tf = (k, l, x = '') => `<label class="fld ${x}"><span>${l}</span><input id="c_${k}" value="${esc(kc(k))}" class="in" maxlength="300"></label>`;
-  return `<div class="dgrid g2"><div class="card span2">${cardH('Kop Surat', 'file', `<div class="segs">${[['teks', 'Logo + teks', 'edit'], ['gambar', 'Gambar kop jadi', 'image']].map(([k, l, ic]) => `<button class="seg ${kc('kopMode') === k ? 'on' : ''}" data-act="kopMode" data-k="${k}">${I(ic)}<span>${l}</span></button>`).join('')}</div>`)}
+  return `<div class="cols2"><div class="col"><div class="card">${cardH('Kop Surat', 'file', `<div class="segs">${[['teks', 'Logo + teks', 'edit'], ['gambar', 'Gambar kop jadi', 'image']].map(([k, l, ic]) => `<button class="seg ${kc('kopMode') === k ? 'on' : ''}" data-act="kopMode" data-k="${k}">${I(ic)}<span>${l}</span></button>`).join('')}</div>`)}
   <div class="kopprev"><div class="paper mini">${kop()}</div></div>
   ${kc('kopMode') === 'gambar' ? `<div class="upl mt-3"><div class="upl-p wide">${okImg(c.kopImg) ? `<img src="${okImg(c.kopImg)}" alt="">` : I('image', 'big')}</div><div><b>Gambar kop surat utuh</b><p class="muted sm">PNG/JPG lebar (mis. hasil potong kop resmi, termasuk garis bawah). Dipakai apa adanya di semua dokumen.</p><label class="btn2 file">${I('upload')}<span>Unggah kop</span><input type="file" accept="image/png,image/jpeg,image/webp" data-ch="kopImg" hidden></label></div></div>` : `<div class="fgrid mt-3">${tf('kop1', 'Baris 1 (pemerintah)', 'col-span-full')}${tf('kop2', 'Baris 2 (nama instansi, huruf besar tebal)', 'col-span-full')}${tf('kop3', 'Baris 3 (alamat, telepon, kode pos)', 'col-span-full')}</div>
   <div class="upl mt-3"><div class="upl-p">${`<img src="${okImg(c.logo) || KOPLOGO}" alt="Logo kop">`}</div><div><b>Logo kop</b><p class="muted sm">Bawaan: lambang Provinsi Sulawesi Tenggara. PNG/JPG/WebP, otomatis dibersihkan metadata.</p><div class="stack"><label class="btn2 file">${I('upload')}<span>Ganti logo</span><input type="file" accept="image/png,image/jpeg,image/webp" data-ch="cfgLogo" hidden></label>${c.logo ? b('Pakai lambang Sultra', 'logoDef', {}, 'btn2', 'refresh') : ''}</div></div></div>`}</div>
-  <div class="card">${cardH('Penandatangan', 'pen')}<div class="fgrid">${tf('pejabat', 'Nama Pejabat Penandatangan (bawaan)')}${tf('nip', 'NIP Pejabat')}${tf('jabatan', 'Jabatan Penandatangan (mis. Sekretaris Daerah)')}${tf('pangkat', 'Pangkat/Golongan Pejabat (boleh kosong)')}${tf('kota', 'Tempat dikeluarkan (mis. Kendari)')}${tf('bendahara', 'Nama Bendahara Pengeluaran (untuk kuitansi)')}${tf('nipBend', 'NIP Bendahara Pengeluaran')}</div>
+  <div class="card">${cardH('Penandatangan', 'pen')}<div class="fgrid g2">${tf('pejabat', 'Nama Pejabat Penandatangan (bawaan)')}${tf('nip', 'NIP Pejabat')}${tf('jabatan', 'Jabatan Penandatangan (mis. Sekretaris Daerah)')}${tf('pangkat', 'Pangkat/Golongan Pejabat (boleh kosong)')}${tf('kota', 'Tempat dikeluarkan (mis. Kendari)')}${tf('bendahara', 'Nama Bendahara Pengeluaran (untuk kuitansi)')}${tf('nipBend', 'NIP Bendahara Pengeluaran')}</div>
    <div class="sec mt-3">${I('pen')}<span>Penanda tangan lain (dipilih per SPPD)</span></div><p class="muted sm mb-2">Mis. Kepala Biro untuk Surat Tugas dan PPK untuk SPD. Pejabat di atas tetap menjadi bawaan.</p>
    ${sgRows('signers')}<div class="stack mt-2">${b('Tambah penanda tangan', 'sgAdd', {l:'signers'}, 'btn2', 'plus')}</div>
    <div class="info mt-3">${I('pen')}<span>Tanda tangan dilakukan manual (basah): ruang tanda tangan pada dokumen cetak dan Word dibiarkan kosong.</span></div></div>
-  <div class="card span2">${cardH('Data Kepala OPD', 'building', `<span class="chip">${(c.kopd || []).length} OPD</span>`)}<p class="muted sm mb-2">Kepala OPD dapat dipilih sebagai penanda tangan Surat Tugas maupun SPD di Form SPPD (bagian <b>Penanda tangan</b>). Isi jabatan lengkap, mis. <i>Kepala Dinas Pendidikan dan Kebudayaan</i>.</p>
+</div><div class="col">  <div class="card">${cardH('Identitas Instansi', 'building')}<div class="fgrid">${CF.filter(([k]) => !['pejabat', 'nip', 'jabatan'].includes(k)).map(([k, l]) => `<label class="fld"><span>${l}</span><input id="c_${k}" value="${esc(c[k])}" class="in" maxlength="200"></label>`).join('')}</div></div>
+
+  <div class="card">${cardH('Data Kepala OPD', 'building', `<span class="chip">${(c.kopd || []).length} OPD</span>`)}<p class="muted sm mb-2">Kepala OPD dapat dipilih sebagai penanda tangan Surat Tugas maupun SPD di Form SPPD (bagian <b>Penanda tangan</b>). Isi jabatan lengkap, mis. <i>Kepala Dinas Pendidikan dan Kebudayaan</i>.</p>
    ${sgRows('kopd')}<div class="stack mt-2">${b('Tambah Kepala OPD', 'sgAdd', {l:'kopd'}, 'btn2', 'plus')}</div></div>
-  <div class="card">${cardH('Identitas Instansi', 'building')}<div class="fgrid">${CF.filter(([k]) => !['pejabat', 'nip', 'jabatan'].includes(k)).map(([k, l]) => `<label class="fld"><span>${l}</span><input id="c_${k}" value="${esc(c[k])}" class="in" maxlength="200"></label>`).join('')}</div></div>
-  <div class="card span2 sticky-act"><div class="actions">${b('Simpan Pengaturan', 'saveCfg', {}, 'btn', 'check')}${b('Pratinjau dokumen', 'go', {r:'cetak'}, 'btn2', 'eye')}<span class="grow"></span>${b('Reset Identitas', 'resetCfg', {}, 'btnd', 'refresh')}</div></div></div>`; };
+</div></div>
+  <div class="card sticky-act"><div class="actions">${b('Simpan Pengaturan', 'saveCfg', {}, 'btn', 'check')}${b('Pratinjau dokumen', 'go', {r:'cetak'}, 'btn2', 'eye')}<span class="grow"></span>${b('Reset Identitas', 'resetCfg', {}, 'btnd', 'refresh')}</div></div>`; };
 const readCfg = () => { [...CF.map(c => c[0]), ...CFX].forEach(k => { const e = $('#c_' + k); if (e) D.cfg[k] = txt(e.value.trim(), 300); }); const n = $('#c_ttdNote'); if (n) D.cfg.ttdNote = txt(n.value, 2000); if ($('#c_ttdTag')) D.cfg.ttdTag = txt($('#c_ttdTag').value.trim(), 40); };
 /* Daftar penanda tangan (signers = penanda tangan lain, kopd = Kepala OPD): baris jabatan / nama / pangkat / NIP */
 const SGL = {signers:20, kopd:50}, SGC = [['jabatan', 'Jabatan'], ['nama', 'Nama'], ['pangkat', 'Pangkat/Gol.'], ['nip', 'NIP']];
@@ -324,7 +331,7 @@ onCh('cfgLogo', async el => { const f = el.files[0]; if (!f) return; try { readC
 
 /* ---------- Backup & restore ---------- */
 const cloudCard = () => Cloud.on ? `<div class="card span2">${cardH('Penyimpanan Cloud', 'cloud', `<span class="badge ${Cloud.state === 'ok' ? 'b-ok' : Cloud.state === 'sync' ? 'b-warn' : 'b-bad'}">${{ok:'Terhubung', sync:'Menyimpan…', off:'Offline — mencoba lagi', err:'Gagal — mencoba lagi', idle:'-'}[Cloud.state]}</span>`)}<div class="kv sm"><div><span>Server</span><b>${esc(Cloud.url.replace(/^https?:\/\//, ''))}</b></div><div><span>Diperbarui terakhir</span><b>${Cloud.last ? new Date(Cloud.last).toLocaleString('id-ID') : '-'}</b></div><div><span>Antrean</span><b>${Cloud.pending} perubahan</b></div>${Cloud.err && Cloud.state !== 'ok' ? `<div><span>Pesan</span><b>${esc(Cloud.err)}</b></div>` : ''}</div><div class="info mt-3">${I('lock')}<span>Data dienkripsi di browser sebelum dikirim — server hanya menyimpan teks acak. Data yang sama dapat dibuka dari browser/perangkat mana pun setelah masuk.</span></div><div class="info mt-2">${I('cloud')}<span>Selalu terhubung: setiap perubahan langsung tersimpan ke database, dan perubahan dari perangkat lain muncul sendiri dalam beberapa detik — tidak perlu sinkron manual.</span></div></div>` : `<div class="card span2">${cardH('Mode Lokal', 'database')}<div class="warn">${I('alert')}<span>Data hanya tersimpan di browser ini. Agar bisa dibuka dari browser/perangkat lain, aktifkan Penyimpanan Cloud (lihat README bagian "Penyimpanan Cloud").</span></div></div>`;
-pages.bak = () => `<div class="dgrid g2">${cloudCard()}<div class="card">${cardH('Backup Data', 'download')}<div class="warn">${I('alert')}<span>${Cloud.on ? 'Walau data sudah di cloud, tetap simpan backup berkala di tempat aman.' : 'Data tersimpan terenkripsi di browser perangkat ini dan belum tersinkron ke perangkat lain. Lakukan backup berkala.'}</span></div>
+pages.bak = () => `<div class="dgrid g2 bk">${cloudCard()}<div class="card">${cardH('Backup Data', 'download')}<div class="warn">${I('alert')}<span>${Cloud.on ? 'Walau data sudah di cloud, tetap simpan backup berkala di tempat aman.' : 'Data tersimpan terenkripsi di browser perangkat ini dan belum tersinkron ke perangkat lain. Lakukan backup berkala.'}</span></div>
   <div class="stack">${b('Backup Terenkripsi (disarankan)', 'bakEnc', {}, 'btn', 'lock')}${b('Backup JSON biasa', 'bakJSON', {}, 'btn2', 'download')}</div><p class="muted sm mt-2">Backup terenkripsi dilindungi kata sandi backup (AES-256-GCM). Backup biasa dapat dibaca siapa saja yang memegang file-nya.</p>
   <div class="sec mt-4">${I('csv')}<span>Ekspor CSV</span></div><div class="stack">${b('Pegawai', 'expCSV', {k:'emp'}, 'btn2', 'csv')}${b('SPPD', 'expSppd', {}, 'btn2', 'csv')}${b('Laporan', 'expRep', {}, 'btn2', 'csv')}</div></div>
   <div class="card">${cardH('Restore Data', 'upload')}<p class="muted sm">Impor berkas backup (.json biasa atau terenkripsi). Data diperiksa & dibersihkan terlebih dahulu; data lama diganti setelah konfirmasi dan verifikasi kata sandi Anda.</p><div class="stack mt-3">${b('Pilih File Backup', 'pickRestore', {}, 'btn2', 'folder')}</div></div></div>`;
@@ -335,7 +342,7 @@ act('bakEnc', () => modal('Backup Terenkripsi', `<p class="muted sm mb-3">Buat k
   const salt = newSalt(), ct = await seal(await kdf(p, salt), bakData(), 'backup');
   dl('backup_sppd_' + today() + '_terenkripsi.json', JSON.stringify({app:'sim-sppd', v:2, enc:{salt, it:ITER, box:ct}}), 'application/json'); log('Ekspor backup terenkripsi'); return true;
 }, false, 'Buat & Unduh'), 'a');
-act('expSppd', () => dl('sppd.csv', toCSV([['Nomor', 'Tanggal', 'Pegawai', 'Tujuan', 'Maksud', 'Berangkat', 'Kembali', 'Total Biaya'], ...D.sppd.map(x => [x.no, x.tgl, pegOf(x).nama, x.tujuan, x.maksud, x.tb, x.tk, totB(x)])])));
+act('expSppd', () => dl('sppd.csv', toCSV([['Nomor', 'Tanggal', 'Pegawai', 'Pengikut', 'Tujuan', 'Maksud', 'Berangkat', 'Kembali', 'Total Biaya'], ...D.sppd.map(x => [x.no, x.tgl, pegOf(x).nama, orang(x).slice(1).map(p => p.nama).join('; '), x.tujuan, x.maksud, x.tb, x.tk, totB(x)])])));
 act('expRep', () => dl('laporan.csv', toCSV([['SPPD', 'Status', 'Hasil', 'Kesimpulan', 'Saran'], ...D.rep.map(r => [D.sppd.find(s => s.id === r.sppdId)?.no, r.status, r.hasil || [r.h1, r.h2, r.h3].filter(Boolean).join(' | '), r.kes, r.tl])])));
 act('pickRestore', () => { $('#fjson').value = ''; $('#fjson').click(); }, 'a');
 $('#fjson').addEventListener('change', async e => {
@@ -345,7 +352,7 @@ $('#fjson').addEventListener('change', async e => {
   if (!j || j.app !== 'sim-sppd') return toast('Berkas bukan backup SIM-SPPD', 'err');
   const apply = async data => {
     try { for (const k of ['emp', 'prog', 'sppd', 'rep']) if (!Array.isArray(data[k])) throw 0; if (typeof data.cfg !== 'object') throw 0; } catch { return toast('Isi backup tidak lengkap/rusak', 'err'); }
-    const clean = {}; try { KEYS.forEach(k => { if (data[k] !== undefined) { clean[k] = CLEAN[k](data[k]); if (ITEMS.includes(k)) stampOrder(clean[k]); } }); } catch { return toast('Isi backup tidak valid', 'err'); }
+    const clean = {}; try { KEYS.forEach(k => { if (data[k] !== undefined) { clean[k] = CLEAN[k](data[k]); if (ITEMS.includes(k)) stampOrder(clean[k]); } }); if (clean.apr === undefined) clean.apr = []; } catch { return toast('Isi backup tidak valid', 'err'); }
     if (!(await ask(`Ganti seluruh data saat ini dengan isi backup? (${clean.emp.length} pegawai, ${clean.sppd.length} SPPD)`, 'Ganti Data'))) return;
     reauth('Konfirmasi kata sandi Anda untuk restore', async () => {
       const old = Object.fromEntries(KEYS.map(k => [k, D[k]]));
@@ -364,7 +371,7 @@ $('#fjson').addEventListener('change', async e => {
 });
 
 /* ---------- Kerangka (shell) ---------- */
-const M = [['dash','Dashboard','home','Utama'],['emp','Data Pegawai','users','Data'],['prog','Program & Kegiatan','clipboard','Data'],['sppd','Data SPPD','receipt','Perjalanan Dinas'],['form','Form SPPD','pen','Perjalanan Dinas'],['cetak','Cetak Dokumen','printer','Perjalanan Dinas'],['lap','Laporan Perjalanan','file','Perjalanan Dinas'],['rekap','Rekapitulasi','chart','Perjalanan Dinas'],['set','Pengaturan Instansi','building','Sistem'],['tampil','Tampilan & Tema','palette','Sistem'],['user','Pengguna & Peran','shield','Sistem'],['bak','Backup & Restore','database','Sistem']];
+const M = [['dash','Dashboard','home','Utama'],['emp','Data Pegawai','users','Data'],['prog','Program & Kegiatan','clipboard','Data'],['sppd','Data SPPD','receipt','Perjalanan Dinas'],['form','Form SPPD','pen','Perjalanan Dinas'],['cetak','Cetak Dokumen','printer','Perjalanan Dinas'],['lap','Laporan Perjalanan','file','Perjalanan Dinas'],['rekap','Rekapitulasi','chart','Perjalanan Dinas'],['apr','Persetujuan','pen','Perjalanan Dinas'],['peng','Pengaturan','building','Sistem'],['akses','Pengguna & Backup','shield','Sistem']];
 const menuIco = k => { const m = M.find(x => x[0] === k), v = UI().icons?.[k]; if (v && v.t === 'img' && okImg(v.v)) return `<img class="mico" src="${okImg(v.v)}" alt="">`; if (v && v.t === 'txt' && v.v) return `<span class="emo">${esc(v.v)}</span>`; return I(v && v.t === 'svg' && ICONS[v.v] ? v.v : m ? m[2] : 'dots'); };
 const go = r => { closeDrawers(); if (r === 'form') { if (!canW()) return; if (location.hash !== '#sppd') location.hash = 'sppd'; setTimeout(() => openSppd(), 40); } else location.hash = r; };
 act('go', el => go(el.dataset.r));
@@ -385,11 +392,63 @@ function rp() {
 }
 let RT = 'dash', lastRT = '';
 const AFTER = {};
+/* ---------- Persetujuan pimpinan & tanda tangan elektronik (v1.2.7) ----------
+   st/spd : surat ditandatangani penanda tangan (stS / spdS) → Pimpinan menekan "Setujui & TTD" → gambar tanda tangannya dibubuhkan di dokumen.
+   lap    : laporan disetujui pimpinan pemberi tugas (stS) — dengan TTD elektronik atau cukup ditandai "manual" (ditandatangani basah).
+   Catatan: tanda tangan = gambar + catatan persetujuan (siapa/kapan); bukan tanda tangan digital bersertifikat. */
+const DOCN = {st:'Surat Tugas', spd:'SPD', lap:'Laporan'};
+const meA = () => { const u = Auth.user(); return u ? {...u, ...(ACL.find(x => x.id === u.id) || {})} : {}; };
+const aprOf = (s, d) => D.apr.find(a => a.sppdId === s.id && a.doc === d);
+const docSg = (s, d) => signerOf(s, d === 'spd' ? 'spdS' : 'stS');
+const nrm = x => String(x || '').replace(/\D/g, '');
+const sgIs = (sg, u) => !!(u && sg && ((nrm(u.nip) && nrm(sg.nip) === nrm(u.nip)) || (!nrm(u.nip) && sg.nama && u.name && sg.nama.trim().toLowerCase() === String(u.name).trim().toLowerCase())));
+const aprOk = (s, a) => !!a && (a.mode === 'manual' || (a.mode === 'ttd' && sgIs(docSg(s, a.doc), ACL.find(x => x.id === a.by))));
+const ttdOf = (s, d) => { const a = aprOf(s, d); if (!a || a.mode !== 'ttd' || !aprOk(s, a)) return null; const img = okImg(ACL.find(x => x.id === a.by)?.ttd); return img ? {img, at:a.at} : null; };
+const aprBadge = (s, d) => { const a = aprOf(s, d); return !a ? '<span class="badge b-warn">Menunggu</span>' : !aprOk(s, a) ? '<span class="badge b-bad">Perlu disetujui ulang</span>' : `<span class="badge b-ok">${a.mode === 'ttd' ? 'Disetujui · TTD elektronik' : 'Disetujui · manual'}</span>`; };
+const aprChips = s => ['st', 'spd', 'lap'].map(d => { const a = aprOf(s, d), ok = aprOk(s, a); return `<span class="ap ${ok ? 'ok' : a ? 'bad' : ''}" title="${DOCN[d]}: ${ok ? (a.mode === 'ttd' ? 'disetujui (TTD elektronik)' : 'disetujui (manual)') : a ? 'perlu disetujui ulang' : 'menunggu persetujuan'}">${{st:'ST', spd:'SPD', lap:'Lap'}[d]}</span>`; }).join('');
+const aprActs = (s, d) => { const u = meA(), a = aprOf(s, d), ok = aprOk(s, a), out = [];
+  if (d === 'lap' && !D.rep.some(r => r.sppdId === s.id)) return '<span class="muted sm">Laporan belum dibuat</span>';
+  if (u.role === 'kepala' && sgIs(docSg(s, d), u) && !(a && ok && a.mode === 'ttd')) out.push(u.ttd ? b('Setujui & TTD', 'aprDo', {s:s.id, d}, 'btn sm', 'pen') : '<span class="muted sm">Gambar tanda tangan belum diunggah (hubungi Admin)</span>');
+  if ((u.role === 'admin' || u.role === 'operator') && !(a && ok)) out.push(b('Tandai disetujui (manual)', 'aprMan', {s:s.id, d}, 'btn2 sm', 'check'));
+  if (a && (u.role === 'admin' || (u.role === 'operator' && a.mode === 'manual') || a.by === u.id)) out.push(b('Cabut', 'aprDel', {s:s.id, d}, 'btnd sm', 'x'));
+  return out.join(''); };
+pages.apr = () => {
+  const u = meA(), isK = u.role === 'kepala', q = ST.apr.q.toLowerCase(), docs3 = ['st', 'spd', 'lap'];
+  const rows = D.sppd.filter(s => (!isK || docs3.some(d => sgIs(docSg(s, d), u))) && (!q || (s.no + s.tujuan + s.maksud + orang(s).map(p => p.nama).join(' ')).toLowerCase().includes(q)) && (!ST.apr.st || docs3.some(d => !aprOk(s, aprOf(s, d))))).sort((x, y) => y.tb.localeCompare(x.tb));
+  const cell = (s, d) => `<div class="apc">${aprBadge(s, d)}<small class="muted">${esc(docSg(s, d).nama || '-')}</small><div class="ra wrap">${aprActs(s, d)}</div></div>`;
+  return `<div class="card">${cardH('Persetujuan & Tanda Tangan', 'pen')}
+  ${isK ? (u.ttd ? `<div class="info">${I('pen')}<span>Anda masuk sebagai <b>${esc(u.name)}</b>. Daftar menampilkan dokumen yang penanda tangannya cocok dengan NIP/nama Anda. Tombol <b>Setujui &amp; TTD</b> membubuhkan gambar tanda tangan Anda pada dokumen cetak/Word.</span></div>` : `<div class="warn">${I('alert')}<span>Gambar tanda tangan Anda belum diunggah. Minta Administrator mengunggahnya di Pengguna &amp; Backup → Ubah pengguna.</span></div>`) : `<div class="info">${I('info')}<span>Pimpinan menyetujui dengan <b>Setujui &amp; TTD</b> (tanda tangan elektronik). Bila surat/laporan ditandatangani basah, pakai <b>Tandai disetujui (manual)</b>.</span></div>`}
+  <div class="toolbar mt-3">${inp('apr', 'q', 'Cari nomor / pegawai / tujuan')}${sel('apr', 'st', ['Menunggu persetujuan'], 'Semua')}</div>
+  ${table(['Nomor SPPD', 'Pegawai · Tujuan', 'Surat Tugas', 'SPD', 'Laporan', ''], sl('apr', rows).map(s => [s.no ? `<b>${esc(s.no)}</b>` : '<span class="muted">(belum bernomor)</span>', `${pegCell(s)}<small class="muted ikut">${esc(s.tujuan)} · ${dts(s.tb)}</small>`, cell(s, 'st'), cell(s, 'spd'), cell(s, 'lap'), rowAct([iBtn('toCetak', {id:s.id}, 'printer', 'Pratinjau dokumen')])]))}${pager('apr', rows.length)}</div>`;
+};
+const aprPut = (s, d, mode, extra = {}) => { const u = meA(), sg = docSg(s, d); D.apr = D.apr.filter(a => !(a.sppdId === s.id && a.doc === d)); D.apr.push({id:uid(), ts:nextTs(), sppdId:s.id, doc:d, mode, by:u.id, nama:sg.nama || '', jab:sg.jabatan || '', nip:sg.nip || '', at:today(), ...extra}); return save('apr'); };
+const aprArgs = el => { const s = D.sppd.find(x => x.id === el.dataset.s), d = ['st', 'spd', 'lap'].includes(el.dataset.d) ? el.dataset.d : ''; return s && d ? [s, d] : null; };
+act('aprDo', async el => { const r = aprArgs(el), u = meA(); if (!r || u.role !== 'kepala') return; const [s, d] = r;
+  if (!sgIs(docSg(s, d), u)) return toast('Anda bukan penanda tangan dokumen ini', 'err'); if (!okImg(u.ttd)) return toast('Gambar tanda tangan belum diunggah', 'err');
+  if (!(await ask(`Setujui ${DOCN[d]} ${s.no ? 'nomor ' + s.no : 'ini'} dan bubuhkan tanda tangan elektronik Anda?`, 'Setujui & TTD'))) return;
+  if (aprPut(s, d, 'ttd')) { log('Menyetujui ' + DOCN[d] + ' ' + (s.no || '') + ' (TTD elektronik)'); toast('Disetujui — tanda tangan dibubuhkan pada dokumen'); render(); } });
+act('aprMan', async el => { const r = aprArgs(el), u = meA(); if (!r || !['admin', 'operator'].includes(u.role)) return; const [s, d] = r;
+  if (!(await ask(`Tandai ${DOCN[d]} ${s.no ? 'nomor ' + s.no : 'ini'} sebagai SUDAH disetujui pimpinan (ditandatangani manual)? Tidak ada gambar tanda tangan yang dibubuhkan.`, 'Tandai'))) return;
+  if (aprPut(s, d, 'manual')) { log('Menandai ' + DOCN[d] + ' ' + (s.no || '') + ' disetujui pimpinan (manual)'); toast('Ditandai disetujui pimpinan'); render(); } });
+act('aprDel', async el => { const r = aprArgs(el), u = meA(); if (!r) return; const [s, d] = r, a = aprOf(s, d); if (!a || !(u.role === 'admin' || a.by === u.id || (u.role === 'operator' && a.mode === 'manual'))) return;
+  if (!(await ask(`Cabut persetujuan ${DOCN[d]} ${s.no || ''}? Tanda tangan elektronik pada dokumen ikut hilang.`, 'Cabut'))) return;
+  D.apr = D.apr.filter(x => x.id !== a.id); if (save('apr')) { log('Mencabut persetujuan ' + DOCN[d] + ' ' + (s.no || '')); toast('Persetujuan dicabut'); render(); } });
+
+/* ---------- Menu gabungan (v1.2.7): Pengaturan = Instansi + Tampilan & Tema; Pengguna & Backup = Pengguna & Peran + Backup & Restore ---------- */
+const ALIAS = {set:['peng', 'ins'], tampil:['peng', 'tm'], user:['akses', 'usr'], bak:['akses', 'usr']}, TABOK = {peng:['ins', 'tm']};
+ST.peng = {t:'ins'}; ST.akses = {t:'usr'};
+const tabBar = (k, items) => `<div class="tabbar"><div class="segs">${items.map(([v, l, ic]) => `<button class="seg ${ST[k].t === v ? 'on' : ''}" data-act="tab" data-k="${k}" data-v="${v}">${I(ic)}<span>${l}</span></button>`).join('')}</div></div>`;
+act('tab', el => { const k = el.dataset.k; if (!own(TABOK, k) || !TABOK[k].includes(el.dataset.v)) return; if (k === 'peng' && ST.peng.t === 'ins') readCfg(); ST[k].t = el.dataset.v; render(); }, 'a');
+pages.peng = () => tabBar('peng', [['ins', 'Instansi & Penandatangan', 'building'], ['tm', 'Tampilan & Tema', 'palette']]) + (ST.peng.t === 'tm' ? pages.tampil() : pages.set());
+pages.akses = () => pages.user() + pages.bak();   /* satu halaman: pengguna di atas, backup & restore di bawah */
+AFTER.peng = () => { if (ST.peng.t === 'tm') AFTER.tampil(); else { const p = $('.kopprev .paper.mini'); if (p) { p.style.zoom = 1; p.style.zoom = Math.min(1, p.parentElement.clientWidth / p.offsetWidth).toFixed(3); } } };
+AFTER.akses = () => AFTER.user();
 function render() {
   if (!Auth.logged()) return;
-  const r = location.hash.slice(1) || 'dash';
+  let r = location.hash.slice(1) || 'dash';
+  if (own(ALIAS, r)) { const [nr, t] = ALIAS[r]; ST[nr].t = t; r = nr; history.replaceState(null, '', '#' + nr); }   /* alamat lama (#set, #tampil, #user, #bak) → menu gabungan */
   RT = (own(pages, r) && Auth.allow(r)) ? r : 'dash';
-  if (RT !== 'tampil' && TDraft) { TDraft = null; applyUI(); }
+  if (!(RT === 'peng' && ST.peng.t === 'tm') && TDraft) { TDraft = null; applyUI(); }
   let grp0 = '';
   $('#nav').innerHTML = M.filter(m => Auth.allow(m[0]) && (m[0] !== 'form' || canW())).map(m => { const g = m[3] !== grp0 ? `<div class="ng lb">${esc(m[3])}</div>` : ''; grp0 = m[3]; return `${g}<button class="nv ${m[0] === RT ? 'on' : ''}" data-act="go" data-r="${m[0]}" title="${esc(m[1])}"><span class="nvi">${menuIco(m[0])}</span><span class="lb">${esc(m[1])}</span></button>`; }).join('');
   const bn = [['dash', 'Beranda'], ['sppd', 'SPPD'], canW() ? ['form', 'Baru'] : ['cetak', 'Cetak'], ['lap', 'Laporan']].filter(x => Auth.allow(x[0]));

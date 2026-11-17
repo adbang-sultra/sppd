@@ -37,7 +37,7 @@ create table if not exists public.sppd_meta (
 create table if not exists public.sppd_users (
   id         text primary key check (id ~ '^[a-z0-9]{4,40}$'),
   u          text not null unique check (u ~ '^[a-z0-9._-]{3,30}$'),
-  role       text not null check (role in ('admin','operator','viewer')),
+  role       text not null check (role in ('admin','operator','kepala','viewer')),
   aktif      boolean not null default true,
   salt       text, it int, wiv text, wk text,       -- kunci data terbungkus (tidak bisa dibuka tanpa kata sandi)
   ah         text,                                  -- sha256(kunci otentikasi); null = perlu atur ulang sandi
@@ -109,6 +109,10 @@ drop function if exists public.sppd_pull(text, bigint);
 drop function if exists public.sppd_push(text, json);
 
 -- ---------- Fungsi bantu (internal) ----------
+-- v1.2.7: peran Pimpinan (kepala) — perbarui batasan pada basis data yang sudah ada (aman dijalankan ulang)
+alter table public.sppd_users drop constraint if exists sppd_users_role_check;
+alter table public.sppd_users add constraint sppd_users_role_check check (role in ('admin','operator','kepala','viewer'));
+
 create or replace function public.sppd_h(t text) returns text
 language sql immutable set search_path = public, extensions as $$
   select encode(extensions.digest(t, 'sha256'), 'hex')
@@ -282,8 +286,8 @@ begin
   perform pg_advisory_xact_lock(778201);
   for r in select value from json_array_elements(p_rows) loop
     key := r->>'k'; col := split_part(key, ':', 1); d := coalesce((r->>'d')::boolean, false); b := (r->>'b')::bigint;
-    if key is null or key !~ '^[a-z]{2,6}(:[a-z0-9]{4,40})?$' or col <> all (array['emp','prog','sppd','rep','ph','log','cfg','acl','img']) then raise exception 'KUNCI' using errcode = '22023'; end if;
-    if not (usr.role = 'admin' or col = 'log' or (usr.role = 'operator' and col in ('emp','prog','sppd','rep','ph'))) then raise exception 'AKSES' using errcode = '42501'; end if;
+    if key is null or key !~ '^[a-z]{2,6}(:[a-z0-9]{4,40})?$' or col <> all (array['emp','prog','sppd','rep','apr','ph','log','cfg','acl','img']) then raise exception 'KUNCI' using errcode = '22023'; end if;
+    if not (usr.role = 'admin' or col = 'log' or (usr.role = 'operator' and col in ('emp','prog','sppd','rep','apr','ph')) or (usr.role = 'kepala' and col = 'apr')) then raise exception 'AKSES' using errcode = '42501'; end if;
     if length(coalesce(r->>'v', '')) > 4000000 then raise exception 'BESAR' using errcode = '22023'; end if;
     if col = 'log' then
       if d or key not in ('log:' || left(usr.id, 20) || to_char(hari - 1, 'YYYYMMDD'), 'log:' || left(usr.id, 20) || to_char(hari, 'YYYYMMDD'), 'log:' || left(usr.id, 20) || to_char(hari + 1, 'YYYYMMDD')) then
@@ -346,7 +350,7 @@ language plpgsql security definer set search_path = public, extensions as $$
 declare usr public.sppd_users := public.sppd_sess(p_t); nid text := p->>'id'; nrole text := p->>'role'; non boolean := coalesce((p->>'aktif')::boolean, true);
 begin
   if usr.role <> 'admin' then raise exception 'AKSES' using errcode = '42501'; end if;
-  if nrole not in ('admin','operator','viewer') then raise exception 'PERAN' using errcode = '22023'; end if;
+  if nrole not in ('admin','operator','kepala','viewer') then raise exception 'PERAN' using errcode = '22023'; end if;
   if exists (select 1 from public.sppd_users where id = nid) then
     update public.sppd_users set role = nrole, aktif = non, updated_at = now() where id = nid;
     if p->>'ah' is not null then

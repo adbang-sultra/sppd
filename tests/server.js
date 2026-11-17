@@ -41,6 +41,17 @@ http.createServer((q, s) => {
     const done = out => { s.writeHead(200, {'Content-Type':'application/json'}); s.end(JSON.stringify({fail:S.fail, calls:S.calls, out})); };
     return sql ? psql(sql + '\n', (e, out, se) => done(e ? 'ERR ' + se : out.trim())) : done('');
   }
+  if (u.pathname === '/api/ai') {          // tiruan fungsi api/ai.js (tanpa memanggil penyedia AI sungguhan)
+    let b = ''; q.on('data', d => b += d); q.on('end', () => {
+      const j = (c, o) => { s.writeHead(c, {...H, 'Content-Type':'application/json'}); s.end(JSON.stringify(o)); };
+      if (q.method !== 'POST') return j(405, {ok:false});
+      if (q.headers['x-ai-code'] !== 'kode-uji') return j(401, {ok:false, error:'Tidak berwenang', needCode:true});
+      let c = {}; try { c = JSON.parse(b).ctx || {}; } catch {}
+      if (String(c.hasil || '').length < 30) return j(400, {ok:false, error:'Isi Hasil yang Dicapai terlebih dahulu.'});
+      j(200, {ok:true, data:{latar:'Latar AI paragraf satu.\nLatar AI paragraf dua.', mt:'Maksud AI di ' + c.tujuan + '.', keg:'Kegiatan AI satu\n- rincian satu\nKegiatan AI dua', kes:'Kesimpulan AI satu\nKesimpulan AI dua', tl:'Saran AI satu\nSaran AI dua', penutup:'Penutup AI.'}});
+    });
+    return;
+  }
   if (u.pathname.startsWith('/rest/v1/rpc/')) {
     if (mode !== 'cloud') { s.writeHead(404); return s.end(); }
     if (S.fail) return q.socket.destroy();

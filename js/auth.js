@@ -12,13 +12,13 @@
 'use strict';
 const AK = 'sppd_auth', VK = 'sppd_vault', FK = 'sppd_authfail', SK = 'sppd_sess', LEG = 'sppd_users';
 const IDLE = 20 * 60e3, ABS = 10 * 3600e3, MAXF = 5, LOCK = 5 * 60e3;
-const LV = {admin:3, operator:2, viewer:1}, RL = {admin:'Administrator', operator:'Operator', viewer:'Pembaca'};
-const PG = {operator:['dash','emp','prog','sppd','form','cetak','lap','rekap'], viewer:['dash','sppd','cetak','rekap']};
+const LV = {admin:3, operator:2, kepala:1, viewer:1}, RL = {admin:'Administrator', operator:'Operator', kepala:'Pimpinan (Kepala OPD)', viewer:'Pembaca'};
+const PG = {operator:['dash','emp','prog','sppd','form','cetak','lap','rekap','apr'], kepala:['dash','sppd','cetak','lap','rekap','apr'], viewer:['dash','sppd','cetak','rekap']};
 const UNRE = /^[a-z0-9._-]{3,30}$/;
 let cur = null, ACL = [], lastT = 0;
 const getA = () => { try { const a = JSON.parse(localStorage.getItem(AK)); return Array.isArray(a) ? a : []; } catch { return []; } };
 const putA = a => localStorage.setItem(AK, JSON.stringify(a));
-const cleanACL = v => arr(v, 500).map(o => ({id:okId(o.id) ? o.id : '', u:UNRE.test(o.u) ? o.u : '', name:txt(o.name, 60), role:own(RL, o.role) ? o.role : 'viewer', on:o.on === true})).filter(o => o.id && o.u);
+const cleanACL = v => arr(v, 500).map(o => ({id:okId(o.id) ? o.id : '', u:UNRE.test(o.u) ? o.u : '', name:txt(o.name, 60), role:own(RL, o.role) ? o.role : 'viewer', on:o.on === true, ...(o.role === 'kepala' ? {nip:txt(o.nip, 30), ttd:okImg(o.ttd) || ''} : {})})).filter(o => o.id && o.u);
 const saveACL = () => Cloud.on ? (Cloud.queue('acl'), Cloud.flush()) : Vault.key && seal(Vault.key, ACL, 'acl').then(s => localStorage.setItem(Vault.xk('acl'), s));
 const cloudUser = me => ({id:me.id, u:me.u, name:ACL.find(x => x.id === me.id)?.name || me.u, role:me.role, on:true});
 const loadACL = async () => { const s = localStorage.getItem(Vault.xk('acl')); ACL = s ? cleanACL(await unseal(Vault.key, s, 'acl')) : []; };
@@ -73,7 +73,7 @@ const Auth = {
   logged:() => !!cur, role:() => cur?.role, user:() => cur,
   can:l => (LV[cur?.role] || 0) >= (l === 'a' ? 3 : 2),
   allow:p => !!cur && (cur.role === 'admin' || (PG[cur.role] || []).includes(p)),
-  canWrite(k) { const r = cur?.role; if (!r) return false; if (r === 'admin' || k === 'log') return true; return r === 'operator' && ['emp', 'prog', 'sppd', 'rep'].includes(k); },
+  canWrite(k) { const r = cur?.role; if (!r) return false; if (r === 'admin' || k === 'log') return true; if (r === 'kepala') return k === 'apr'; return r === 'operator' && ['emp', 'prog', 'sppd', 'rep', 'apr'].includes(k); },
   async logout(msg = '', fromOther) {
     try { await flush(); } catch {}
     if (cur) { try { log('Keluar'); await flush(); } catch {} }
@@ -233,19 +233,25 @@ act('pwEdit', () => {
 /* ---------- Manajemen pengguna (Administrator) ---------- */
 const admins = a => a.filter(x => x.role === 'admin' && x.on).length;
 let CUL = null;
-AFTER.user = () => { if (!Cloud.on) return; Cloud.rpc('sppd_user_list', {p_t:Cloud.token}).then(l => { const j = JSON.stringify(l); if (j !== JSON.stringify(CUL)) { CUL = l; if (RT === 'user') render(); } }).catch(e => toast(e.message, 'err')); };
+AFTER.user = () => { if (!Cloud.on) return; Cloud.rpc('sppd_user_list', {p_t:Cloud.token}).then(l => { const j = JSON.stringify(l); if (j !== JSON.stringify(CUL)) { CUL = l; if (RT === 'akses') render(); } }).catch(e => toast(e.message, 'err')); };
 const cloudRows = () => { const ids = new Set([...(CUL || []).map(x => x.id), ...ACL.map(x => x.id)]); return [...ids].map(id => { const s = (CUL || []).find(x => x.id === id), a = ACL.find(x => x.id === id) || {}; return {id, u:s?.u || a.u, name:a.name || s?.u || a.u, role:s?.role || a.role, on:s ? s.aktif : !!a.on, need:!s || !s.auth, lock:s?.lock}; }); };
 pages.user = () => {
   const A = getA();
   if (Cloud.on) { const L = cloudRows(); return `<div class="card">${cardH('Pengguna & Peran', 'shield', b('Jejak Audit', 'audit', {}, 'btn2', 'clock') + b('Tambah Pengguna', 'uEdit', {}, 'btn', 'plus'))}${CUL === null ? '<p class="muted sm">Memuat daftar pengguna dari server…</p>' : ''}${table(['Username', 'Nama', 'Peran', 'Status', 'Aksi'], L.map(u => [`<b>${esc(u.u)}</b>`, esc(u.name), RL[u.role] || '-', !u.on ? '<span class="badge b-bad">Nonaktif</span>' : u.need ? '<span class="badge b-warn">Perlu atur ulang sandi</span>' : u.lock ? '<span class="badge b-warn">Terkunci sementara</span>' : badge('Aktif'), rowAct([iBtn('uEdit', {id:u.id}, 'edit', 'Ubah'), u.id === cur.id ? '' : iBtn('uDel', {id:u.id}, 'trash', 'Hapus', 'ib sm danger')])]))}<div class="info mt-3">${I('cloud')}<span>Peran & status diperiksa di server. Kata sandi tidak pernah dikirim — server hanya menyimpan hash kunci otentikasi & kunci data terbungkus. Mengganti kata sandi pengguna lain langsung mengeluarkan sesinya di semua perangkat.</span></div></div>`; }
-  return `<div class="card">${cardH('Pengguna & Peran', 'shield', b('Tambah Pengguna', 'uEdit', {}, 'btn', 'plus'))}<div class="roles"><div><b>${I('shield')}Administrator</b><span>Semua menu, tampilan, pengguna, backup</span></div><div><b>${I('edit')}Operator</b><span>Kelola pegawai, program, SPPD, laporan</span></div><div><b>${I('eye')}Pembaca</b><span>Hanya melihat & mencetak</span></div></div>
+  return `<div class="card">${cardH('Pengguna & Peran', 'shield', b('Tambah Pengguna', 'uEdit', {}, 'btn', 'plus'))}<div class="roles"><div><b>${I('shield')}Administrator</b><span>Semua menu, tampilan, pengguna, backup</span></div><div><b>${I('edit')}Operator</b><span>Kelola pegawai, program, SPPD, laporan</span></div><div><b>${I('pen')}Pimpinan (Kepala OPD)</b><span>Menyetujui & membubuhkan tanda tangan elektronik</span></div><div><b>${I('eye')}Pembaca</b><span>Hanya melihat & mencetak</span></div></div>
   ${table(['Username', 'Nama', 'Peran', 'Status', 'Aksi'], ACL.map(u => { const a = A.find(x => x.id === u.id), need = !a?.wk; return [`<b>${esc(u.u)}</b>`, esc(u.name), RL[u.role], u.on ? (need ? '<span class="badge b-warn">Perlu atur ulang sandi</span>' : badge('Aktif')) : '<span class="badge b-bad">Nonaktif</span>', rowAct([iBtn('uEdit', {id:u.id}, 'edit', 'Ubah'), u.id === cur.id ? '' : iBtn('uDel', {id:u.id}, 'trash', 'Hapus', 'ib sm danger')])]; }))}
   <div class="info mt-3">${I('lock')}<span>Kata sandi tidak pernah disimpan. Setiap akun memegang salinan kunci data yang terbungkus kata sandinya sendiri. Akun bertanda "Perlu atur ulang sandi" berasal dari versi lama — klik Ubah dan isi kata sandi baru.</span></div>
   <div class="warn mt-3">${I('alert')}<span><b>Batas mode lokal:</b> semua akun di browser ini memegang kunci data yang sama dan peran hanya diperiksa oleh aplikasi di browser — bukan pengaman terhadap pengguna yang paham teknis. Bila perlu pembatasan peran yang sungguh-sungguh (Pembaca tidak bisa mengubah data), aktifkan Penyimpanan Cloud: di sana peran diperiksa server.</span></div></div>`;
 };
+let UTTD = '';
+const kpx = role => role === 'kepala' ? {nip:txt($('#x_nip')?.value.trim() || '', 30), ttd:UTTD} : {};
+CH.uRole = el => { const k = $('#x_kp'); if (k) k.hidden = el.value !== 'kepala'; };
+onCh('uTtd', async el => { const f = el.files[0]; if (!f) return; try { let d = await reencode(f, 420, 'image/png'); if (d.length > 2e5) d = await reencode(f, 320, 'image/png'); UTTD = d; const p = $('#x_ttdp'); if (p) p.innerHTML = `<img src="${esc(d)}" alt="Tanda tangan">`; } catch (e) { toast(e.message, 'err'); } });
+act('uTtdDel', () => { UTTD = ''; const p = $('#x_ttdp'); if (p) p.innerHTML = I('pen', 'big'); }, 'a');
 act('uEdit', el => {
   const id = el.dataset.id, u = id ? (Cloud.on ? cloudRows().find(x => x.id === id) : ACL.find(x => x.id === id)) : {role:'operator', on:true}; if (id && !u) return;
-  modal(id ? 'Ubah Pengguna' : 'Tambah Pengguna', `<div class="fgrid"><label class="fld"><span>Username</span><input id="x_u" class="in" value="${esc(u.u)}" ${id ? 'readonly' : ''} maxlength="30" autocapitalize="none"></label><label class="fld"><span>Nama</span><input id="x_n" class="in" value="${esc(u.name)}" maxlength="60"></label><label class="fld"><span>Peran</span><select id="x_r" class="in">${Object.keys(RL).map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${RL[r]}</option>`).join('')}</select></label><label class="fld"><span>Status</span><select id="x_a" class="in"><option value="1" ${u.on ? 'selected' : ''}>Aktif</option><option value="0" ${u.on ? '' : 'selected'}>Nonaktif</option></select></label><label class="fld col-span-full"><span>${id ? 'Kata sandi baru (kosongkan jika tidak diubah)' : 'Kata sandi'}</span><input id="x_p" type="password" class="in" autocomplete="new-password" maxlength="128" data-in="pwMeter">${pwMeter()}</label></div>`, async () => {
+  const a0 = ACL.find(x => x.id === id) || {}; UTTD = okImg(a0.ttd) || '';
+  modal(id ? 'Ubah Pengguna' : 'Tambah Pengguna', `<div class="fgrid"><label class="fld"><span>Username</span><input id="x_u" class="in" value="${esc(u.u)}" ${id ? 'readonly' : ''} maxlength="30" autocapitalize="none"></label><label class="fld"><span>Nama</span><input id="x_n" class="in" value="${esc(u.name)}" maxlength="60"></label><label class="fld"><span>Peran</span><select id="x_r" class="in" data-ch="uRole">${Object.keys(RL).map(r => `<option value="${r}" ${u.role === r ? 'selected' : ''}>${RL[r]}</option>`).join('')}</select></label><label class="fld"><span>Status</span><select id="x_a" class="in"><option value="1" ${u.on ? 'selected' : ''}>Aktif</option><option value="0" ${u.on ? '' : 'selected'}>Nonaktif</option></select></label><div class="col-span-full kpf" id="x_kp" ${u.role === 'kepala' ? '' : 'hidden'}><div class="sec">${I('pen')}<span>Data Pimpinan (untuk tanda tangan elektronik)</span></div><label class="fld"><span>NIP (dipakai mencocokkan dengan penanda tangan SPPD)</span><input id="x_nip" class="in" value="${esc(a0.nip || '')}" maxlength="30" inputmode="numeric"></label><div class="upl mt-2"><div class="upl-p wide" id="x_ttdp">${UTTD ? `<img src="${esc(UTTD)}" alt="Tanda tangan">` : I('pen', 'big')}</div><div><b>Gambar tanda tangan</b><p class="muted sm">PNG latar transparan/putih, tanda tangan saja. Otomatis dikecilkan. Hanya dipakai saat pimpinan menekan <i>Setujui &amp; TTD</i>.</p><div class="stack"><label class="btn2 file">${I('upload')}<span>Unggah tanda tangan</span><input type="file" accept="image/png,image/jpeg,image/webp" data-ch="uTtd" hidden></label><button type="button" class="btn2" data-act="uTtdDel">Hapus</button></div></div></div></div><label class="fld col-span-full"><span>${id ? 'Kata sandi baru (kosongkan jika tidak diubah)' : 'Kata sandi'}</span><input id="x_p" type="password" class="in" autocomplete="new-password" maxlength="128" data-in="pwMeter">${pwMeter()}</label></div>`, async () => {
     const un = id ? u.u : $('#x_u').value.trim().toLowerCase(), pw = $('#x_p').value, role = $('#x_r').value, on = $('#x_a').value === '1', A = getA();
     if (!UNRE.test(un)) { toast('Username 3-30 karakter: huruf kecil, angka, . _ -', 'err'); return false; }
     if (!own(RL, role)) return false;
@@ -257,13 +263,13 @@ act('uEdit', el => {
       if (!id && (CUL || []).some(x => x.u === un)) { toast('Username sudah dipakai', 'err'); return false; }
       const nid = id || uid(), p = {id:nid, u:un, role, aktif:on, ...(pw ? await Cloud.entry(nid, un, pw) : {})};
       try { await Cloud.rpc('sppd_user_put', {p_t:Cloud.token, p}); } catch (e) { toast(/ADMIN/.test(e.message) ? 'Harus ada minimal satu administrator aktif' : 'Gagal menyimpan: ' + e.message, 'err'); return false; }
-      const rec = {id:nid, u:un, name:txt($('#x_n').value.trim(), 60) || un, role, on}; const i = ACL.findIndex(x => x.id === nid); if (i >= 0) ACL[i] = rec; else ACL.push(rec);
+      const rec = {id:nid, u:un, name:txt($('#x_n').value.trim(), 60) || un, role, on, ...kpx(role)}; const i = ACL.findIndex(x => x.id === nid); if (i >= 0) ACL[i] = rec; else ACL.push(rec);
       await saveACL(); CUL = null; if (nid === cur.id) { cur = {...cur, role, name:rec.name}; document.body.dataset.role = role; }
       log((id ? 'Mengubah' : 'Menambah') + ' pengguna ' + un + ' (' + RL[role] + ')'); toast('Pengguna disimpan'); render(); return true;
     }
     const rest = ACL.filter(x => x.id !== id).concat(role === 'admin' && on ? [{role:'admin', on:true}] : []); if (!admins(rest)) { toast('Harus ada minimal satu administrator aktif', 'err'); return false; }
-    const nid = id || uid(), rec = {id:nid, u:un, name:txt($('#x_n').value.trim(), 60) || un, role, on};
-    if (id) Object.assign(ACL.find(x => x.id === id), rec); else ACL.push(rec);
+    const nid = id || uid(), rec = {id:nid, u:un, name:txt($('#x_n').value.trim(), 60) || un, role, on, ...kpx(role)};
+    if (id) { const o = ACL.find(x => x.id === id); delete o.nip; delete o.ttd; Object.assign(o, rec); } else ACL.push(rec);
     if (pw) { const e = await authEntry(nid, un, pw), i = A.findIndex(x => x.id === nid); if (i >= 0) A[i] = e; else A.push(e); putA(A); }
     await saveACL(); if (id === cur.id) { cur = ACL.find(x => x.id === id); document.body.dataset.role = cur.role; }
     log((id ? 'Mengubah' : 'Menambah') + ' pengguna ' + un + ' (' + RL[role] + ')'); toast('Pengguna disimpan'); render(); return true;
