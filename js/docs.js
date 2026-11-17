@@ -81,18 +81,23 @@ function dSPPD1(s, e) {
 
 /* ---------- Lampiran SPD (lembar belakang) — tanpa kop surat ---------- */
 function dLamp(s) {
-  const sg = signerOf(s, 'spdS'), L = (rows) => `<table class="kv3">${rows.map(([a, b]) => `<tr><td>${a}</td><td>: ${b || ''}</td></tr>`).join('')}</table>`;
-  const tiba = (a = '', d = '') => L([['Tiba di', esc(a)], ['Pada Tanggal', d], ['Kepala', '']]);
+  /* Lembar belakang SPD — mengikuti FORMAT_SPPD_BARU_2025 (sheet "Belakang"): blok I–VI, VII Catatan Lain, VIII Perhatian, Paraf Hierarki */
+  const sg = signerOf(s, 'spdS'), c = D.cfg, tt = ttdOf(s, 'spd'), L = rows => `<table class="kv3">${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b === null ? '' : ': ' + (b || '')}</td></tr>`).join('')}</table>`;
+  const nn = '<div class="lnm"><div class="lnl"></div><div>NIP.</div></div>';
+  const tiba = (a = '', d = '') => L([['Tiba di', esc(a)], ['Pada Tanggal', d], ['Kepala', ''], ['&nbsp;', null]]);
   const brk = (a = '', b = '', d = '') => L([['Berangkat dari', esc(a)], ['Ke', esc(b)], ['Pada Tanggal', d], ['Kepala', '']]);
-  return page('lamp', `<table class="dt lampt">
-  <tr><td class="c-rn">I</td><td class="c-h"></td><td class="c-h">${brk(s.asal, s.tujuan, dts(s.tb))}${signS(sg, false, ttdOf(s, 'spd'))}</td></tr>
-  <tr><td class="c-rn">II</td><td>${tiba(s.tujuan, dts(s.tb))}</td><td>${brk(s.tujuan, s.asal, dts(s.tk))}</td></tr>
-  <tr><td class="c-rn">III</td><td>${tiba()}</td><td>${brk()}</td></tr>
-  <tr><td class="c-rn">IV</td><td>${tiba()}</td><td>${brk()}</td></tr>
-  <tr><td class="c-rn">V</td><td>${tiba()}</td><td class="just2">Telah diperiksa dengan keterangan bahwa perjalanan tersebut diatas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.</td></tr>
-  <tr><td class="c-rn">VI</td><td colspan="2">Catatan lain-lain :</td></tr>
-  <tr><td></td><td colspan="2" class="just2">PERHATIAN:<br>PPK yang menerbitkan SPD, pegawai yang melakukan Perjalanan Dinas, Pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara. Apabila negara menderita rugi akibat kesalahan, kelalaian dan kealpaannya.</td></tr></table>
-  <div class="sgw r">${signS(sg, true, ttdOf(s, 'spd'))}</div>`, true);
+  const blk = (n, l, r, rc = '') => `<tr class="lb"><td class="c-rn">${n}</td><td class="lc">${l}${nn}</td><td class="lc rt ${rc}">${r}</td></tr>`;
+  const att = `${esc(c.jabatan || 'Pejabat Pembuat Komitmen')}${c.provinsi ? ' Prov. ' + esc(c.provinsi) : ''} yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.`;
+  return page('lamp', `<table class="lampt"><colgroup><col style="width:4.4%"><col style="width:46%"><col style="width:49.6%"></colgroup>
+  <tr class="r1"><td colspan="2" class="lc"></td><td class="lc rt"><span class="lrn">I.</span>${L([['Berangkat dari', esc(s.asal)], ['(Tempat Kedudukan)', null], ['Ke', esc(s.tujuan)], ['Pada Tanggal', dts(s.tb)]])}<div class="lgap"></div>${signS(sg, false, tt)}</td></tr>
+  ${blk('II.', tiba(s.tujuan, dts(s.tb)), brk(s.tujuan, s.asal, dts(s.tk)))}
+  ${blk('III.', tiba(), brk())}
+  ${blk('IV.', tiba(), brk())}
+  ${blk('V.', tiba(), brk())}
+  ${blk('VI.', tiba(), 'Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', 'just2 ltop')}
+  <tr class="l7"><td class="c-rn">VII.</td><td colspan="2" class="ls">Catatan Lain</td></tr>
+  <tr class="l8"><td class="c-rn">VIII.</td><td colspan="2" class="ls just2">PERHATIAN :<br>${att}</td></tr></table>
+  <div class="lbot"><table class="paraf"><tr><td colspan="2">Paraf Hierarki</td></tr><tr class="pr2"><td>Asisten Adm. Umum</td><td></td></tr><tr><td>Kepala Biro Umum</td><td></td></tr><tr><td>Kepala Bagian Tata Usaha</td><td></td></tr></table><div class="lsgn">${signS(sg, true, tt)}</div></div>`, true);
 }
 
 /* ---------- Rincian Biaya Perjalanan Dinas & Kuitansi (tanda tangan basah) ---------- */

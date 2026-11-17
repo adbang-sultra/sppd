@@ -8,7 +8,7 @@ fs.mkdirSync(OUT, {recursive:true});
   console.log('\n[1] Pemasangan & halaman'); await setup(p, U);
   for (const r of ['emp', 'prog', 'sppd', 'cetak', 'lap', 'rekap', 'set', 'tampil', 'user', 'bak', 'dash']) { await p.evaluate(r => location.hash = r, r); await sleep(150); }
   ok(!p.errs.length, 'semua halaman terbuka tanpa error konsol (CSP ketat)', p.errs.join(' | '));
-  ok(await p.evaluate(() => $('#sideUser').textContent.includes('v1.2')), 'nomor versi tampil (v1.2)');
+  ok(await p.evaluate(() => $('#sideUser').textContent.includes('v' + APP_VER)), 'nomor versi tampil (sesuai APP_VER)');
   for (const [r, vw] of [['set', 1920], ['tampil', 1920], ['set', 1366], ['tampil', 1366]]) { await p.setViewportSize({width:vw, height:1000}); await p.evaluate(r => { location.hash = r; }, r); await sleep(700);
     const g = await p.evaluate(() => { const b = $('.sticky-act').getBoundingClientRect(), m = $('#main').getBoundingClientRect(); return {h:Math.round(b.height), w:Math.round(b.width), mw:Math.round(m.width)}; });
     ok(g.h < 140 && g.w > g.mw * .8, `${r} @${vw}px: bilah tombol simpan tidak melebar menutupi isi halaman`, JSON.stringify(g)); await p.screenshot({path:`${OUT}/${r}-${vw}.png`}); }
@@ -58,7 +58,7 @@ fs.mkdirSync(OUT, {recursive:true});
   ok(/RINCIAN BIAYA PERJALANAN DINAS/.test(html) && /KUITANSI/.test(html) && /Sembilan juta tiga ratus dua puluh ribu rupiah/.test(html), 'Rincian Biaya & Kuitansi ada di paket, terbilang benar');
   ok(/KEPALA BIRO ADMINISTRASI PEMBANGUNAN/.test(await p.evaluate(() => dST(D.sppd[0]))) && /PEJABAT PEMBUAT KOMITMEN/.test(await p.evaluate(() => dSPPD(D.sppd[0]))), 'Surat Tugas & SPD ditandatangani pejabat berbeda');
   ok(!/\$\{ttd\}|dnote|elektronik|UU ITE|class="tte"/i.test(html) && (html.match(/class="sg-sp"/g) || []).length >= 4, 'cetak: tanpa kotak TTE/penanda ${ttd}, tanpa catatan kaki; ruang tanda tangan kosong');
-  const fnt = await p.evaluate(() => { const bad = new Set(); $$('#main .paperw .paper *').forEach(e => { if (e.closest('.kop2,.kopimg,.paper.lap') || !e.childNodes.length || ![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) return; const c = getComputedStyle(e); if (!/^Arial/.test(c.fontFamily) || c.fontSize !== '16px') bad.add(e.tagName + '.' + e.className + ' ' + c.fontFamily.slice(0, 12) + ' ' + c.fontSize); }); return [...bad]; });
+  const fnt = await p.evaluate(() => { const bad = new Set(); $$('#main .paperw .paper *').forEach(e => { if (e.closest('.kop2,.kopimg,.paper.lap,.paper.lamp,.ttd-n') || !e.childNodes.length || ![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) return; const c = getComputedStyle(e); if (!/^Arial/.test(c.fontFamily) || c.fontSize !== '16px') bad.add(e.tagName + '.' + e.className + ' ' + c.fontFamily.slice(0, 12) + ' ' + c.fontSize); }); return [...bad]; });
   ok(!fnt.length, 'cetak: semua teks isi Arial 12 pt (kecuali kop)', fnt.slice(0, 5).join(' | '));
   /* v1.2.5: Surat Tugas tanpa jabatan di badan surat; Lampiran SPD tanpa kop; laporan mengikuti template Wakatobi */
   const stH = await p.evaluate(() => dST(D.sppd[0])), lpH = await p.evaluate(() => dLamp(D.sppd[0])), lapH = await p.evaluate(() => dLap(D.sppd[0]));

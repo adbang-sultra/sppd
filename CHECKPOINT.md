@@ -61,3 +61,7 @@
 
 ## v1.2.9
 - [x] Anti-cache: berkas css/js di index.html diberi ?v=<versi> dan Cache-Control /(css|js) menjadi max-age=0, must-revalidate — agar perubahan langsung terlihat setelah deploy. (Ubah ?v= tiap rilis.)
+
+## v1.3.0
+- [x] Lembar belakang SPD (Lampiran) dibuat ulang mengikuti FORMAT_SPPD_BARU_2025.xlsx (sheet "Belakang"): I (Berangkat dari + (Tempat Kedudukan) + tanda tangan pejabat), II–V (Tiba di | Berangkat dari, masing-masing dengan ruang tanda tangan + garis nama + NIP.), VI (Tiba di | "Telah diperiksa…"), VII Catatan Lain, VIII PERHATIAN, kotak Paraf Hierarki (Asisten Adm. Umum, Kepala Biro Umum, Kepala Bagian Tata Usaha) dan tanda tangan di kanan bawah. Arial 8,5 pt (pengecilan proporsional seperti fit-to-page Excel) agar tetap satu halaman di cetak dan Word. Teks PERHATIAN memakai jabatan & provinsi dari Pengaturan.
+- Tes font: lembar belakang (.paper.lamp) dikecualikan dari aturan Arial 12 pt.
