@@ -62,7 +62,7 @@
 .lampt{line-height:1.12}.lampt>tbody>tr>td{padding:.6mm 2mm}
 .lampt .c-rn{width:9mm;text-align:center}.lampt .c-h{width:48%}
 .paper .kv3{width:100%}.paper .kv3 td{padding:.2mm 0;border:none;vertical-align:top}.paper .kv3 td:first-child{width:28mm;white-space:nowrap}
-.lampt>tbody>tr{height:16mm}.lampt>tbody>tr:nth-last-child(-n+2){height:auto}.lampt>tbody>tr:first-child{height:auto}
+.lampt>tbody>tr{height:26mm}.lampt>tbody>tr:nth-last-child(-n+2){height:auto}.lampt>tbody>tr:first-child{height:auto}
 
 /* ---------- Tanda tangan (manual/basah: ruang tanda tangan dibiarkan kosong) ---------- */
 .sgw{display:flex;flex-direction:column;align-items:flex-start;margin:5mm 0 0 42%;break-inside:avoid}

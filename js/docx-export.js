@@ -110,7 +110,7 @@ async function buildDocx(s, v) {
   const LAMP = () => { const W = [520, 4559, 4559], Z = {sz:20, ln:216};
     const kv = rows => T(rows.map(([a, b2]) => [C(a, {w:1850, nb:1, ml:0, mt:0, mb:0, ...Z}), C(': ' + (b2 || ''), {w:2500, nb:1, mt:0, mb:0, ...Z})]), [1850, 2500], {nb:1});
     const tiba = (a, d) => kv([['Tiba di', a], ['Pada Tanggal', d], ['Kepala', '']]), brk = (a, b2, d) => kv([['Berangkat dari', a], ['Ke', b2], ['Pada Tanggal', d], ['Kepala', '']]);
-    const rn = t => C(t, {w:W[0], al:'c', ...Z}), RH = 900;
+    const rn = t => C(t, {w:W[0], al:'c', ...Z}), RH = 1300;   /* baris II–V: ruang tanda tangan/stempel diperlebar */
     return [T([[rn('I'), C('', {w:W[1]}), C([brk(s.asal, s.tujuan, dts(s.tb)), ...signParas(false, SG, 800, TT.spd)], {w:W[2]})],
       [rn('II'), C(tiba(s.tujuan, dts(s.tb)), {w:W[1]}), C(brk(s.tujuan, s.asal, dts(s.tk)), {w:W[2]})],
       [rn('III'), C(tiba(), {w:W[1]}), C(brk(), {w:W[2]})], [rn('IV'), C(tiba(), {w:W[1]}), C(brk(), {w:W[2]})],

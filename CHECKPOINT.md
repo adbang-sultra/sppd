@@ -55,3 +55,6 @@
 - [x] Data SPPD/Rekap/Dashboard: pengikut ikut dihitung (orang(s)); CSV ada kolom Pengikut.
 - [x] Menu gabungan: peng (Instansi + Tampilan & Tema, 2 kolom) dan akses (Pengguna + Backup satu halaman); alamat lama #set/#tampil/#user/#bak dialihkan.
 - Belum diuji: tes cloud (run-cloud), tes kapasitas [5], Word di MS Word/WPS.
+
+## Perbaikan v1.2.8
+- [x] Lampiran SPD (lembar belakang): baris II–V (Tiba di / Berangkat dari) diperlebar untuk ruang tanda tangan — cetak 26 mm, Word 1300 twips (±23 mm). Tetap satu halaman di cetak dan Word.
