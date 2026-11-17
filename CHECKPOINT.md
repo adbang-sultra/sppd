@@ -65,3 +65,6 @@
 ## v1.3.0
 - [x] Lembar belakang SPD (Lampiran) dibuat ulang mengikuti FORMAT_SPPD_BARU_2025.xlsx (sheet "Belakang"): I (Berangkat dari + (Tempat Kedudukan) + tanda tangan pejabat), II–V (Tiba di | Berangkat dari, masing-masing dengan ruang tanda tangan + garis nama + NIP.), VI (Tiba di | "Telah diperiksa…"), VII Catatan Lain, VIII PERHATIAN, kotak Paraf Hierarki (Asisten Adm. Umum, Kepala Biro Umum, Kepala Bagian Tata Usaha) dan tanda tangan di kanan bawah. Arial 8,5 pt (pengecilan proporsional seperti fit-to-page Excel) agar tetap satu halaman di cetak dan Word. Teks PERHATIAN memakai jabatan & provinsi dari Pengaturan.
 - Tes font: lembar belakang (.paper.lamp) dikecualikan dari aturan Arial 12 pt.
+
+## v1.3.1
+- [x] Perbaikan hasil cetak Lampiran SPD: lebar kolom sebelumnya memakai atribut style (diblokir CSP `style-src 'self'` di produksi) sehingga kolom jadi sama lebar. Kini lewat kelas CSS (.ca/.cb/.cc). Tes baru memeriksa lebar kolom di bawah CSP. CATATAN RILIS: jangan pakai atribut style= di HTML dokumen; skrip uji visual jangan memakai bypassCSP.

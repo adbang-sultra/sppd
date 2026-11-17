@@ -141,3 +141,5 @@
 .paper .lbot{display:flex;justify-content:space-between;align-items:flex-start;margin-top:3mm;break-inside:avoid}
 .paper .paraf{border-collapse:collapse;width:62mm}.paper .paraf td{border:1px solid #000;padding:.5mm 1.5mm;height:5.5mm}.paper .paraf tr.pr2 td{height:9mm}.paper .paraf td:last-child{width:14mm}
 .paper .lsgn{width:50%}.paper .lsgn .sg-sp{height:15mm}
+.paper .lampt .ca{width:4.4%}.paper .lampt .cb{width:46%}.paper .lampt .cc{width:49.6%}
+.paper .lampt .kv3{width:100%;table-layout:fixed}.paper .lampt .rt .kv3 td:first-child{width:23mm}

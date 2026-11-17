@@ -64,6 +64,9 @@ fs.mkdirSync(OUT, {recursive:true});
   const stH = await p.evaluate(() => dST(D.sppd[0])), lpH = await p.evaluate(() => dLamp(D.sppd[0])), lapH = await p.evaluate(() => dLap(D.sppd[0]));
   ok(!/class="st-j"/.test(stH) && (stH.match(/KEPALA BIRO ADMINISTRASI PEMBANGUNAN/g) || []).length === 1, 'Surat Tugas: jabatan di badan surat dihapus (hanya di blok tanda tangan)');
   ok(!/kop2|kopimg/.test(lpH) && /Berangkat dari/.test(lpH), 'Lampiran SPD (halaman 2): tanpa kop surat');
+  /* v1.3.1: lebar kolom Lampiran harus lewat CSS (CSP memblokir gaya sebaris) — numeral ±4%, kiri ±46%, kanan ±50% */
+  const lw = await p.evaluate(h => { const d = document.createElement('div'); d.innerHTML = h; document.body.appendChild(d); const r = d.querySelector('.lampt tr.lb'), tb = d.querySelector('.lampt').getBoundingClientRect().width, w = [...r.children].map(c => Math.round(c.getBoundingClientRect().width / tb * 100)); d.remove(); return w; }, lpH);
+  ok(lw[0] <= 8 && lw[1] >= 42 && lw[1] <= 50 && lw[2] >= 46, 'Lampiran SPD: lebar kolom benar di bawah CSP (tidak memakai gaya sebaris)', JSON.stringify(lw));
   ok(/KESIMPULAN DAN SARAN/.test(lapH) && /Kesimpulan:/.test(lapH) && />Saran</.test(lapH) && /PENUTUP/.test(lapH) && /Yang melakukan perjalanan dinas,/.test(lapH) && !/REKOMENDASI|VI\./.test(lapH), 'Laporan: struktur I–V (Kesimpulan & Saran, Penutup) seperti template');
   const lapF = await p.evaluate(() => { const e = $('#main .paper.lap .lp') || $('#main .paper.lap .li'); if (!e) return 'tidak ada'; const c = getComputedStyle(e); return c.fontFamily.slice(0, 20) + '|' + c.fontSize + '|' + c.textAlign; });
   ok(/^Tinos|^"Tinos/.test(lapF) && /\|16px\|justify/.test(lapF), 'Laporan: Times New Roman (Tinos) 12 pt rata kiri-kanan', lapF);
