@@ -58,3 +58,6 @@
 
 ## Perbaikan v1.2.8
 - [x] Lampiran SPD (lembar belakang): baris II–V (Tiba di / Berangkat dari) diperlebar untuk ruang tanda tangan — cetak 26 mm, Word 1300 twips (±23 mm). Tetap satu halaman di cetak dan Word.
+
+## v1.2.9
+- [x] Anti-cache: berkas css/js di index.html diberi ?v=<versi> dan Cache-Control /(css|js) menjadi max-age=0, must-revalidate — agar perubahan langsung terlihat setelah deploy. (Ubah ?v= tiap rilis.)
