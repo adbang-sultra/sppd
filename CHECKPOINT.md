@@ -71,3 +71,6 @@
 
 ## v1.3.2
 - [x] Lampiran SPD: Paraf Hierarki dihapus; huruf disamakan dengan dokumen lain (Arial 12 pt — pengecualian lamp di CSS/tes dicabut); angka romawi "I." kini di dalam sel yang sama dengan blok tanda tangan kepala biro, sejajar baris "Berangkat dari" (cetak & Word). Tetap satu halaman: cetak memakai line-height 1.04; Word memakai jarak baris tetap 12 pt (exact), margin atas/bawah 12 mm khusus lembar belakang, kolom nomor dilebarkan (VIII.).
+
+## v1.3.3
+- [x] Lembar belakang SPD: huruf diperkecil ke Arial 10 pt (satu jenis & ukuran untuk seluruh isi; tes baru memeriksanya) agar ruang tanda tangan lebih luas: cetak blok II–VI 30 mm, ruang di atas garis nama ±10 mm, ruang tanda tangan kepala biro bawah 18 mm; Word: baris min 1900 twips, ruang nama ±11 mm, margin atas/bawah kembali 15 mm. Tetap satu halaman.
