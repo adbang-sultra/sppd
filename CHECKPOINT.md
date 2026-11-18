@@ -68,3 +68,6 @@
 
 ## v1.3.1
 - [x] Perbaikan hasil cetak Lampiran SPD: lebar kolom sebelumnya memakai atribut style (diblokir CSP `style-src 'self'` di produksi) sehingga kolom jadi sama lebar. Kini lewat kelas CSS (.ca/.cb/.cc). Tes baru memeriksa lebar kolom di bawah CSP. CATATAN RILIS: jangan pakai atribut style= di HTML dokumen; skrip uji visual jangan memakai bypassCSP.
+
+## v1.3.2
+- [x] Lampiran SPD: Paraf Hierarki dihapus; huruf disamakan dengan dokumen lain (Arial 12 pt — pengecualian lamp di CSS/tes dicabut); angka romawi "I." kini di dalam sel yang sama dengan blok tanda tangan kepala biro, sejajar baris "Berangkat dari" (cetak & Word). Tetap satu halaman: cetak memakai line-height 1.04; Word memakai jarak baris tetap 12 pt (exact), margin atas/bawah 12 mm khusus lembar belakang, kolom nomor dilebarkan (VIII.).

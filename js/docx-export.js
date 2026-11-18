@@ -46,7 +46,7 @@ async function buildDocx(s, v) {
   const LINE = {style:BorderStyle.SINGLE, size:6, color:'000000'}, BB = {top:LINE, bottom:LINE, left:LINE, right:LINE, insideHorizontal:LINE, insideVertical:LINE};
   const AR = 'Arial', SZ = 24;                                       /* isi dokumen: Arial 12 pt; o.kop=1 hanya untuk teks kop surat */
   const R = (t, o = {}) => new TextRun({text:String(t ?? ''), bold:o.b, underline:o.u ? {} : undefined, italics:o.i, size:o.kop || o.tn ? o.sz : SZ, font:o.kop || o.tn ? o.f : AR, break:o.br});
-  const P = (k, o = {}) => new Paragraph({children:(Array.isArray(k) ? k : [R(k, o)]), alignment:o.al === 'c' ? AlignmentType.CENTER : o.al === 'r' ? AlignmentType.RIGHT : o.al === 'j' ? AlignmentType.JUSTIFIED : AlignmentType.LEFT, spacing:{before:o.bf || 0, after:o.af ?? 0, ...(o.ln ? {line:o.ln, lineRule:'auto'} : {})}, indent:o.ind, keepNext:o.kn, border:o.bd, tabStops:o.tabs, pageBreakBefore:o.pb, numbering:o.num, keepLines:o.kl});
+  const P = (k, o = {}) => new Paragraph({children:(Array.isArray(k) ? k : [R(k, o)]), alignment:o.al === 'c' ? AlignmentType.CENTER : o.al === 'r' ? AlignmentType.RIGHT : o.al === 'j' ? AlignmentType.JUSTIFIED : AlignmentType.LEFT, spacing:{before:o.bf || 0, after:o.af ?? 0, ...(o.lex ? {line:o.lex, lineRule:'exact'} : o.ln ? {line:o.ln, lineRule:'auto'} : {})}, indent:o.ind, keepNext:o.kn, border:o.bd, tabStops:o.tabs, pageBreakBefore:o.pb, numbering:o.num, keepLines:o.kl});
   const C = (ch, o = {}) => new TableCell({children:(Array.isArray(ch) ? ch : [ch]).map(x => typeof x === 'string' ? P(x, o) : x), width:o.w ? {size:o.w, type:WidthType.DXA} : undefined, columnSpan:o.cs, rowSpan:o.rs, verticalAlign:o.va === 'c' ? VerticalAlign.CENTER : VerticalAlign.TOP, borders:o.nb ? {top:NONE, bottom:NONE, left:NONE, right:NONE} : o.bd, margins:{top:o.mt ?? 15, bottom:o.mb ?? 15, left:o.ml ?? 90, right:o.mr ?? 90}});
   const T = (rows, widths, o = {}) => new Table({rows:rows.map(r => r instanceof TableRow ? r : new TableRow({children:r, height:o.rh ? {value:o.rh, rule:'atLeast'} : undefined, cantSplit:true})), width:{size:widths.reduce((a, b) => a + b, 0), type:WidthType.DXA}, columnWidths:widths, borders:o.nb ? NB : BB, indent:o.ind ? {size:o.ind, type:WidthType.DXA} : undefined, layout:'fixed'});
   const sp = n => P('', {af:n});
@@ -108,23 +108,22 @@ async function buildDocx(s, v) {
   };
   /* ----- Lampiran SPD ----- */
   const LAMP = () => {   /* Lembar belakang SPD — mengikuti FORMAT_SPPD_BARU_2025 (sheet "Belakang"), Arial 8,5 pt agar satu halaman */
-    const Z = {kop:1, f:AR, sz:17, ln:240}, W = [424, 4433, 4781], G = 300, c = D.cfg, LN1 = {style:BorderStyle.SINGLE, size:4, color:'000000'};
-    const kv = rows => rows.map(([a, b2]) => P([R(a + (b2 === null ? '' : '\t: ' + (b2 || '')), Z)], {tabs:[{type:TabStopType.LEFT, position:1700}], ln:240}));   /* daftar label : isi (paragraf bertab, bukan tabel bersarang) */
+    const Z = {kop:1, f:AR, sz:24, lex:240}, W = [640, 4300, 4698], G = 300, c = D.cfg, LN1 = {style:BorderStyle.SINGLE, size:4, color:'000000'};
+    const kv = rows => rows.map(([a, b2]) => P([R(a + (b2 === null ? '' : '\t: ' + (b2 || '')), Z)], {tabs:[{type:TabStopType.LEFT, position:1900}], lex:240}));   /* daftar label : isi (paragraf bertab, bukan tabel bersarang) */
     const tiba = (a, d) => kv([['Tiba di', a], ['Pada Tanggal', d], ['Kepala', ''], ['', null]]), brk = (a, b2, d) => kv([['Berangkat dari', a], ['Ke', b2], ['Pada Tanggal', d], ['Kepala', '']]);
-    const nn = () => [sp(100), P('', {...Z, bd:{bottom:{style:BorderStyle.SINGLE, size:4, color:'000000', space:1}}, ind:{right:1300}}), P('NIP.', Z)];
+    const nn = () => [P('', {...Z, lex:340, bd:{bottom:{style:BorderStyle.SINGLE, size:4, color:'000000', space:1}}, ind:{right:1300}}), P('NIP.', Z)];
     const bd = (t, l, r, b2) => ({top:t ? LN1 : NONE, left:l ? LN1 : NONE, right:r ? LN1 : NONE, bottom:b2 ? LN1 : NONE});
     const row = (cells, h) => new TableRow({children:cells, cantSplit:true, height:h ? {value:h, rule:'atLeast'} : undefined});
     const blk = (n, l, r) => row([C(P(n, {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C([...l, ...nn()], {w:W[1], bd:bd(1, 0, 0, 0)}), C([...(Array.isArray(r) ? r : [r]), ...(r && r.__txt ? [] : nn())], {w:W[2], bd:bd(1, 1, 1, 0), ml:90 + G})], 1600);
     const att = `${c.jabatan || 'Pejabat Pembuat Komitmen'}${c.provinsi ? ' Prov. ' + c.provinsi : ''} yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.`;
-    const r1 = row([C(P(''), {w:W[0] + W[1], cs:2, bd:bd(1, 1, 0, 0)}), C(T([[C('I.', {w:G, nb:1, ml:0, mt:0, ...Z}), C([...brk0(), ...signParas(false, SG, 300, TT.spd, Z)], {w:W[2] - G, nb:1, ml:0, mt:0})]], [G, W[2] - G], {nb:1}), {w:W[2], bd:bd(1, 1, 1, 0), ml:90})], 1900);
+    const r1 = row([C(P(''), {w:W[0] + W[1], cs:2, bd:bd(1, 1, 0, 0)}), C(T([[C('I.', {w:G, nb:1, ml:0, mt:0, ...Z}), C([...brk0(), ...signParas(false, SG, 120, TT.spd, Z)], {w:W[2] - G, nb:1, ml:0, mt:0})]], [G, W[2] - G], {nb:1}), {w:W[2], bd:bd(1, 1, 1, 0), ml:90})], 1900);
     function brk0() { return kv([['Berangkat dari', s.asal], ['(Tempat Kedudukan)', null], ['Ke', s.tujuan], ['Pada Tanggal', dts(s.tb)]]); }
     const tdr = P('Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', {...Z, al:'j'}); tdr.__txt = true;
     const rows = [r1, blk('II.', tiba(s.tujuan, dts(s.tb)), brk(s.tujuan, s.asal, dts(s.tk))), blk('III.', tiba(), brk()), blk('IV.', tiba(), brk()), blk('V.', tiba(), brk()),
-      new TableRow({children:[C(P('VI.', {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C([...tiba(), ...nn()], {w:W[1], bd:bd(1, 0, 0, 0)}), C([sp(400), sp(100), tdr], {w:W[2], bd:bd(1, 1, 1, 0), ml:90 + G})], cantSplit:true, height:{value:1600, rule:'atLeast'}}),
+      new TableRow({children:[C(P('VI.', {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C([...tiba(), ...nn()], {w:W[1], bd:bd(1, 0, 0, 0)}), C([P('', {...Z, lex:480}), tdr], {w:W[2], bd:bd(1, 1, 1, 0), ml:90 + G})], cantSplit:true, height:{value:1500, rule:'atLeast'}}),
       row([C(P('VII.', {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C(P('Catatan Lain', Z), {w:W[1] + W[2], cs:2, bd:bd(1, 0, 1, 0)})], 300),
       row([C(P('VIII.', {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 1), ml:0, mr:0}), C([P('PERHATIAN :', Z), P(att, {...Z, al:'j'})], {w:W[1] + W[2], cs:2, bd:bd(1, 0, 1, 1)})], 850)];
-    const paraf = T([[C('Paraf Hierarki', {w:3400, cs:2, ...Z})], [C('Asisten Adm. Umum', {w:2500, ...Z}), C('', {w:900})], [C('Kepala Biro Umum', {w:2500, ...Z}), C('', {w:900})], [C('Kepala Bagian Tata Usaha', {w:2500, ...Z}), C('', {w:900})]], [2500, 900], {rh:330});
-    return [T(rows, W, {nb:1}), sp(100), T([[C(paraf, {w:4300, nb:1, ml:0}), C(signParas(true, SG, 900, TT.spd, Z), {w:CW - 4300, nb:1})]], [4300, CW - 4300], {nb:1})];
+    return [T(rows, W, {nb:1}), P('', {...Z, lex:120}), T([[C(P(''), {w:W[0] + W[1], nb:1}), C(signParas(true, SG, 300, TT.spd, Z), {w:W[2], nb:1, ml:90 + 150})]], [W[0] + W[1], W[2]], {nb:1})];
   };
   /* ----- Rincian Biaya & Kuitansi (tanda tangan basah) ----- */
   const BIAYA = () => { const e = pegOf(s), B = s.biaya || [], tot = totB(s), bd = s.bud || {}, n = lama(s.tb, s.tk), W = [600, 4338, 2000, 2700], Z = {sz:21}, NO = {nb:1, ml:0};
@@ -176,7 +175,7 @@ async function buildDocx(s, v) {
 
   const page = {size:{width:11906, height:16838}, margin:{top:2450, bottom:1000, left:1134, right:1134, header:560, footer:420}};
   const sec = (children, lap, nokop) => nokop
-    ? {properties:{page:{...page, margin:{...page.margin, top:850, bottom:850}}}, headers:{default:new Header({children:[P('')]})}, footers:{default:new Footer({children:[P('')]})}, children}   /* Lampiran SPD: tanpa kop surat */
+    ? {properties:{page:{...page, margin:{...page.margin, top:700, bottom:700}}}, headers:{default:new Header({children:[P('')]})}, footers:{default:new Footer({children:[P('')]})}, children}   /* Lampiran SPD: tanpa kop surat */
     : lap
     ? {properties:{page:{...page, margin:{top:1440, bottom:1440, left:1440, right:1440, header:600, footer:420}, pageNumbers:{start:1}}, titlePage:true}, headers:{first:new Header({children:[P('')]}), default:new Header({children:[P([new TextRun({children:[PageNumber.CURRENT], size:SZ, font:AR})], {al:'r'})]})}, footers:{first:new Footer({children:[P('')]}), default:new Footer({children:[P('')]})}, children}
     : {properties:{page}, headers:{default:new Header({children:kopHdr()})}, footers:{default:new Footer({children:[P('')]})}, children};

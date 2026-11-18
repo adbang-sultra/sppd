@@ -1,4 +1,4 @@
-# SIM Pegawai & SPPD — v1.3.1
+# SIM Pegawai & SPPD — v1.3.2
 
 Aplikasi statis (tanpa server). Deploy ke Vercel: `vercel --prod` di folder ini, atau unggah ke GitHub → Import Project (Framework: **Other**, tanpa build command).
 Harus dibuka lewat **HTTPS** (atau localhost) karena memakai Web Crypto.

@@ -81,7 +81,7 @@ function dSPPD1(s, e) {
 
 /* ---------- Lampiran SPD (lembar belakang) — tanpa kop surat ---------- */
 function dLamp(s) {
-  /* Lembar belakang SPD — mengikuti FORMAT_SPPD_BARU_2025 (sheet "Belakang"): blok I–VI, VII Catatan Lain, VIII Perhatian, Paraf Hierarki */
+  /* Lembar belakang SPD — mengikuti FORMAT_SPPD_BARU_2025 (sheet "Belakang"): blok I–VI, VII Catatan Lain, VIII Perhatian (tanpa Paraf Hierarki) */
   const sg = signerOf(s, 'spdS'), c = D.cfg, tt = ttdOf(s, 'spd'), L = rows => `<table class="kv3">${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b === null ? '' : ': ' + (b || '')}</td></tr>`).join('')}</table>`;
   const nn = '<div class="lnm"><div class="lnl"></div><div>NIP.</div></div>';
   const tiba = (a = '', d = '') => L([['Tiba di', esc(a)], ['Pada Tanggal', d], ['Kepala', ''], ['&nbsp;', null]]);
@@ -97,7 +97,7 @@ function dLamp(s) {
   ${blk('VI.', tiba(), 'Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', 'just2 ltop')}
   <tr class="l7"><td class="c-rn">VII.</td><td colspan="2" class="ls">Catatan Lain</td></tr>
   <tr class="l8"><td class="c-rn">VIII.</td><td colspan="2" class="ls just2">PERHATIAN :<br>${att}</td></tr></table>
-  <div class="lbot"><table class="paraf"><tr><td colspan="2">Paraf Hierarki</td></tr><tr class="pr2"><td>Asisten Adm. Umum</td><td></td></tr><tr><td>Kepala Biro Umum</td><td></td></tr><tr><td>Kepala Bagian Tata Usaha</td><td></td></tr></table><div class="lsgn">${signS(sg, true, tt)}</div></div>`, true);
+  <div class="lbot"><div class="lsgn">${signS(sg, true, tt)}</div></div>`, true);
 }
 
 /* ---------- Rincian Biaya Perjalanan Dinas & Kuitansi (tanda tangan basah) ---------- */
