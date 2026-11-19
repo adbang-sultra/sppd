@@ -136,6 +136,7 @@
 .paper .lampt .lc .kv3 td:first-child{width:30mm}
 .paper .lampt .lrn{position:absolute;left:1mm;top:.3mm}
 .paper .lampt .lgap{height:1.2mm}
+.paper .lampt .l1j .tte-j{font-weight:400}   /* blok I: jabatan penanda tangan tidak tebal */
 .paper .lampt .lnm{position:absolute;left:1mm;right:2mm;bottom:.8mm}.paper .lampt .rt .lnm{left:5mm}
 .paper .lampt .lnl{height:9mm;border-bottom:1px solid #000;width:68%}
 .paper .lampt .sgb.nb{margin-top:0}.paper .lampt .sgb.nb .sg-sp{height:10mm}

@@ -84,17 +84,17 @@ function dLamp(s) {
   /* Lembar belakang SPD — mengikuti FORMAT_SPPD_BARU_2025 (sheet "Belakang"): blok I–VI, VII Catatan Lain, VIII Perhatian (tanpa Paraf Hierarki) */
   const sg = signerOf(s, 'spdS'), c = D.cfg, tt = ttdOf(s, 'spd'), L = rows => `<table class="kv3">${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b === null ? '' : ': ' + (b || '')}</td></tr>`).join('')}</table>`;
   const nn = '<div class="lnm"><div class="lnl"></div><div>NIP.</div></div>';
-  const tiba = (a = '', d = '') => L([['Tiba di', esc(a)], ['Pada Tanggal', d], ['Kepala', ''], ['&nbsp;', null]]);
-  const brk = (a = '', b = '', d = '') => L([['Berangkat dari', esc(a)], ['Ke', esc(b)], ['Pada Tanggal', d], ['Kepala', '']]);
-  const blk = (n, l, r, rc = '') => `<tr class="lb"><td class="c-rn">${n}</td><td class="lc">${l}${nn}</td><td class="lc rt ${rc}">${r}</td></tr>`;
+  const tiba = (a = '', d = '') => L([['Tiba di', esc(a)], ['Pada Tanggal', d], ['', '']]);   /* tanpa kata "Kepala": baris kosong ber-titik dua, lalu garis + NIP */
+  const brk = (a = '', b = '', d = '') => L([['Berangkat dari', esc(a)], ['Ke', esc(b)], ['Pada Tanggal', d], ['', '']]);
+  const blk = (n, l, r, rc = '', rn = true) => `<tr class="lb"><td class="c-rn">${n}</td><td class="lc">${l}${nn}</td><td class="lc rt ${rc}">${r}${rn ? nn : ''}</td></tr>`;
   const att = `${esc(c.jabatan || 'Pejabat Pembuat Komitmen')}${c.provinsi ? ' Prov. ' + esc(c.provinsi) : ''} yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.`;
   return page('lamp', `<table class="lampt"><colgroup><col class="ca"><col class="cb"><col class="cc"></colgroup>
-  <tr class="r1"><td colspan="2" class="lc"></td><td class="lc rt"><span class="lrn">I.</span>${L([['Berangkat dari', esc(s.asal)], ['(Tempat Kedudukan)', null], ['Ke', esc(s.tujuan)], ['Pada Tanggal', dts(s.tb)]])}<div class="lgap"></div>${signS(sg, false, tt)}</td></tr>
+  <tr class="r1"><td colspan="2" class="lc"></td><td class="lc rt l1j"><span class="lrn">I.</span>${L([['Berangkat dari', esc(s.asal)], ['(Tempat Kedudukan)', null], ['Ke', esc(s.tujuan)], ['Pada Tanggal', dts(s.tb)]])}<div class="lgap"></div>${signS(sg, false, tt)}</td></tr>
   ${blk('II.', tiba(s.tujuan, dts(s.tb)), brk(s.tujuan, s.asal, dts(s.tk)))}
   ${blk('III.', tiba(), brk())}
   ${blk('IV.', tiba(), brk())}
   ${blk('V.', tiba(), brk())}
-  ${blk('VI.', tiba(), 'Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', 'just2 ltop')}
+  ${blk('VI.', tiba(), 'Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', 'just2 ltop', false)}
   <tr class="l7"><td class="c-rn">VII.</td><td colspan="2" class="ls">Catatan Lain</td></tr>
   <tr class="l8"><td class="c-rn">VIII.</td><td colspan="2" class="ls just2">PERHATIAN :<br>${att}</td></tr></table>
   <div class="lbot"><div class="lsgn">${signS(sg, true, tt)}</div></div>`, true);
