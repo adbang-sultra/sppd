@@ -66,10 +66,10 @@ async function buildDocx(s, v) {
   /* ----- Tanda tangan ----- */
   const SG = signerOf(s, 'spdS');
   /* tanda tangan basah: jabatan, ruang kosong, nama, pangkat (bila ada), NIP */
-  const signParas = (box, sg = SG, gap = box ? 1300 : 1000, tt = null, z = {}, jb = 1) => { const al = 'l', nip = sg.nip && sg.nip !== '-' ? 'NIP. ' + sg.nip : 'NIP.';
+  const signParas = (box, sg = SG, gap = box ? 1300 : 1000, tt = null, z = {}, l1 = 0) => { const al = 'l', nip = sg.nip && sg.nip !== '-' ? 'NIP. ' + sg.nip : 'NIP.';
     let hh = Math.round(gap / 15 * .9), ww = tt ? Math.round(hh * tt.w / tt.h) : 0; if (ww > 170) { ww = 170; hh = Math.round(ww * tt.h / tt.w); }
     const spc = tt ? [new Paragraph({children:[new ImageRun({type:tt.type, data:tt.data, transformation:{width:ww, height:hh}})], spacing:{before:0, after:0}})] : [sp(gap)];
-    return [P((sg.jabatan || '').toUpperCase() + ',', {b:jb, al, ...z}), ...spc, P([R(sg.nama || '..............................', {b:1, u:1, ...z})], {al, ...z}), ...(sg.pangkat ? [P(sg.pangkat, {al, ...z})] : []), P(nip, {al, ...z}), ...(tt ? [P('Disetujui secara elektronik · ' + dts(tt.at), {al, sz:15, f:AR, kop:1})] : [])]; };
+    return [P(l1 ? (sg.jabatan || '') : (sg.jabatan || '').toUpperCase() + ',', {b:l1 ? 0 : 1, al, ...z}), ...spc, P([R(sg.nama || '..............................', {b:1, u:1, ...z})], {al, ...z}), ...(sg.pangkat && !l1 ? [P(sg.pangkat, {al, ...z})] : []), P(nip, {al, ...z}), ...(tt ? [P('Disetujui secara elektronik · ' + dts(tt.at), {al, sz:15, f:AR, kop:1})] : [])]; };
   const SL = Math.round(CW * .40), SR = CW - SL;                       /* blok tanda tangan: kolom kanan, rata kiri (seperti contoh SPT) */
   const signBox = (sg, gap, tt) => T([[C(signParas(true, sg, gap, tt), {w:SR, nb:1, ml:0})]], [SR], {nb:1});
   const issuedT = tgl => T([[C('Dikeluarkan di', {w:1900, nb:1, ml:0}), C(': ' + kc('kota'), {w:2900, nb:1})], [C('Pada tanggal', {w:1900, nb:1, ml:0}), C(': ' + dts(tgl), {w:2900, nb:1})]], [1900, 2900], {nb:1});
@@ -110,13 +110,13 @@ async function buildDocx(s, v) {
   const LAMP = () => {   /* Lembar belakang SPD — mengikuti FORMAT_SPPD_BARU_2025 (sheet "Belakang"), Arial 8,5 pt agar satu halaman */
     const Z = {kop:1, f:AR, sz:24, lex:240}, W = [640, 4300, 4698], G = 300, c = D.cfg, LN1 = {style:BorderStyle.SINGLE, size:4, color:'000000'};
     const kv = rows => rows.map(([a, b2]) => P([R(a + (b2 === null ? '' : '\t: ' + (b2 || '')), Z)], {tabs:[{type:TabStopType.LEFT, position:1900}], lex:240}));   /* daftar label : isi (paragraf bertab, bukan tabel bersarang) */
-    const tiba = (a, d) => kv([['Tiba di', a], ['Pada Tanggal', d], ['', '']]), brk = (a, b2, d) => kv([['Berangkat dari', a], ['Ke', b2], ['Pada Tanggal', d], ['', '']]);
+    const tiba = (a, d) => kv([['Tiba di', a], ['Pada Tanggal', d]]), brk = (a, b2, d) => kv([['Berangkat dari', a], ['Ke', b2], ['Pada Tanggal', d], ['', '']]);
     const nn = () => [P('', {...Z, lex:400, bd:{bottom:{style:BorderStyle.SINGLE, size:4, color:'000000', space:1}}, ind:{right:1300}}), P('NIP.', Z)];
     const bd = (t, l, r, b2) => ({top:t ? LN1 : NONE, left:l ? LN1 : NONE, right:r ? LN1 : NONE, bottom:b2 ? LN1 : NONE});
     const row = (cells, h) => new TableRow({children:cells, cantSplit:true, height:h ? {value:h, rule:'atLeast'} : undefined});
-    const blk = (n, l, r) => row([C(P(n, {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C([...l, ...nn()], {w:W[1], bd:bd(1, 0, 0, 0)}), C([...(Array.isArray(r) ? r : [r]), ...(r && r.__txt ? [] : nn())], {w:W[2], bd:bd(1, 1, 1, 0), ml:90 + G})], 1600);
+    const blk = (n, l, r) => row([C(P(n, {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C([...l, ...nn()], {w:W[1], bd:bd(1, 0, 0, 0)}), C([...(Array.isArray(r) ? r : [r]), ...(r && r.__txt ? [] : nn())], {w:W[2], bd:bd(1, 1, 1, 0), ml:90 + G})], 1680);
     const att = `${c.jabatan || 'Pejabat Pembuat Komitmen'}${c.provinsi ? ' Prov. ' + c.provinsi : ''} yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.`;
-    const r1 = row([C(P(''), {w:W[0] + W[1], cs:2, bd:bd(1, 1, 0, 0)}), C(T([[C('I.', {w:G, nb:1, ml:0, mt:0, ...Z}), C([...brk0(), ...signParas(false, SG, 220, TT.spd, Z, 0)], {w:W[2] - G, nb:1, ml:0, mt:0})]], [G, W[2] - G], {nb:1}), {w:W[2], bd:bd(1, 1, 1, 0), ml:90})], 1900);
+    const r1 = row([C(P(''), {w:W[0] + W[1], cs:2, bd:bd(1, 1, 0, 0)}), C(T([[C('I.', {w:G, nb:1, ml:0, mt:0, ...Z}), C([...brk0(), ...signParas(false, SG, 220, TT.spd, Z, 1)], {w:W[2] - G, nb:1, ml:0, mt:0})]], [G, W[2] - G], {nb:1}), {w:W[2], bd:bd(1, 1, 1, 0), ml:90})], 1900);
     function brk0() { return kv([['Berangkat dari', s.asal], ['(Tempat Kedudukan)', null], ['Ke', s.tujuan], ['Pada Tanggal', dts(s.tb)]]); }
     const tdr = P('Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', {...Z, al:'j'}); tdr.__txt = true;
     const rows = [r1, blk('II.', tiba(s.tujuan, dts(s.tb)), brk(s.tujuan, s.asal, dts(s.tk))), blk('III.', tiba(), brk()), blk('IV.', tiba(), brk()), blk('V.', tiba(), brk()),

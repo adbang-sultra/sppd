@@ -37,9 +37,9 @@ const kop = () => {
 /* ---------- Tanda tangan (manual/basah) ---------- */
 const sgPk = p => p ? `<div class="tte-p">${esc(p)}</div>` : '';
 /* blok tanda tangan: jabatan, ruang kosong untuk tanda tangan basah, nama, pangkat (bila ada), NIP; box=false → rata kiri */
-function sign(jab, nama, nip, box = true, pk = '', ttd = null) {
-  jab = esc((jab || '').toUpperCase()); const nm = esc(nama || '...............................'), np = nip && nip !== '-' ? 'NIP. ' + esc(nip) : 'NIP.';
-  return `<div class="${box ? 'sgb' : 'sgb nb'}"><div class="tte-j">${jab},</div><div class="sg-sp">${ttd ? `<img class="ttd-img" src="${esc(ttd.img)}" alt="Tanda tangan elektronik">` : ''}</div><div class="tte-n">${nm}</div>${sgPk(pk)}<div class="tte-p">${np}</div>${ttd ? `<div class="ttd-n">Disetujui secara elektronik · ${dts(ttd.at)}</div>` : ''}</div>`;
+function sign(jab, nama, nip, box = true, pk = '', ttd = null, raw = false) {
+  jab = raw ? esc(jab || '') : esc((jab || '').toUpperCase()) + ',';   /* raw: jabatan apa adanya, tanpa huruf kapital & koma (blok I lembar belakang SPD) */ const nm = esc(nama || '...............................'), np = nip && nip !== '-' ? 'NIP. ' + esc(nip) : 'NIP.';
+  return `<div class="${box ? 'sgb' : 'sgb nb'}"><div class="tte-j">${jab}</div><div class="sg-sp">${ttd ? `<img class="ttd-img" src="${esc(ttd.img)}" alt="Tanda tangan elektronik">` : ''}</div><div class="tte-n">${nm}</div>${sgPk(pk)}<div class="tte-p">${np}</div>${ttd ? `<div class="ttd-n">Disetujui secara elektronik · ${dts(ttd.at)}</div>` : ''}</div>`;
 }
 const signS = (sg, box, ttd) => sign(sg.jabatan, sg.nama, sg.nip, box, sg.pangkat, ttd);
 const issued = (tgl, cls = '') => `<table class="iss ${cls}"><tr><td>Dikeluarkan di</td><td>: ${esc(kc('kota'))}</td></tr><tr><td>Pada tanggal</td><td>: ${dts(tgl)}</td></tr></table>`;
@@ -84,12 +84,12 @@ function dLamp(s) {
   /* Lembar belakang SPD — mengikuti FORMAT_SPPD_BARU_2025 (sheet "Belakang"): blok I–VI, VII Catatan Lain, VIII Perhatian (tanpa Paraf Hierarki) */
   const sg = signerOf(s, 'spdS'), c = D.cfg, tt = ttdOf(s, 'spd'), L = rows => `<table class="kv3">${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b === null ? '' : ': ' + (b || '')}</td></tr>`).join('')}</table>`;
   const nn = '<div class="lnm"><div class="lnl"></div><div>NIP.</div></div>';
-  const tiba = (a = '', d = '') => L([['Tiba di', esc(a)], ['Pada Tanggal', d], ['', '']]);   /* tanpa kata "Kepala": baris kosong ber-titik dua, lalu garis + NIP */
+  const tiba = (a = '', d = '') => L([['Tiba di', esc(a)], ['Pada Tanggal', d]]);   /* tanpa kata "Kepala"; kolom kiri tanpa baris titik dua kosong, lalu garis + NIP */
   const brk = (a = '', b = '', d = '') => L([['Berangkat dari', esc(a)], ['Ke', esc(b)], ['Pada Tanggal', d], ['', '']]);
   const blk = (n, l, r, rc = '', rn = true) => `<tr class="lb"><td class="c-rn">${n}</td><td class="lc">${l}${nn}</td><td class="lc rt ${rc}">${r}${rn ? nn : ''}</td></tr>`;
   const att = `${esc(c.jabatan || 'Pejabat Pembuat Komitmen')}${c.provinsi ? ' Prov. ' + esc(c.provinsi) : ''} yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.`;
   return page('lamp', `<table class="lampt"><colgroup><col class="ca"><col class="cb"><col class="cc"></colgroup>
-  <tr class="r1"><td colspan="2" class="lc"></td><td class="lc rt l1j"><span class="lrn">I.</span>${L([['Berangkat dari', esc(s.asal)], ['(Tempat Kedudukan)', null], ['Ke', esc(s.tujuan)], ['Pada Tanggal', dts(s.tb)]])}<div class="lgap"></div>${signS(sg, false, tt)}</td></tr>
+  <tr class="r1"><td colspan="2" class="lc"></td><td class="lc rt l1j"><span class="lrn">I.</span>${L([['Berangkat dari', esc(s.asal)], ['(Tempat Kedudukan)', null], ['Ke', esc(s.tujuan)], ['Pada Tanggal', dts(s.tb)]])}<div class="lgap"></div>${sign(sg.jabatan, sg.nama, sg.nip, false, '', tt, true)}</td></tr>
   ${blk('II.', tiba(s.tujuan, dts(s.tb)), brk(s.tujuan, s.asal, dts(s.tk)))}
   ${blk('III.', tiba(), brk())}
   ${blk('IV.', tiba(), brk())}
