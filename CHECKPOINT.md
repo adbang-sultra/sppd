@@ -77,3 +77,6 @@
 
 ## v1.3.4
 - [x] Seluruh isi dokumen cetak & Word kini satu jenis dan ukuran huruf: Arial 12 pt (Surat Tugas, SPD, Lampiran SPD, Rincian/Kuitansi, Laporan). Laporan tidak lagi Times New Roman/Tinos; Lampiran SPD kembali 12 pt (jarak baris dirapatkan agar satu halaman; ruang tanda tangan ±8–10 mm). Kop surat tetap berhuruf kop (Times/Cooper) sebagai identitas. Tes font tidak lagi mengecualikan Laporan dan Lampiran.
+
+## v1.3.5
+- [x] Lembar belakang SPD: ruang tanda tangan diperluas tanpa mengubah huruf (tetap Arial 12 pt, sama dengan bagian lain). Cetak: halaman bernama `@page lamp` margin atas/bawah 8 mm, baris II–VI 31 mm, ruang di atas garis nama 9 mm, kv3 tanpa padding; Word: margin atas/bawah 8,5 mm, ruang nama ±7 mm. Tetap satu halaman di cetak & Word (diuji LibreOffice, CSP aktif).

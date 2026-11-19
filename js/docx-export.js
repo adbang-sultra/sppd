@@ -111,12 +111,12 @@ async function buildDocx(s, v) {
     const Z = {kop:1, f:AR, sz:24, lex:240}, W = [640, 4300, 4698], G = 300, c = D.cfg, LN1 = {style:BorderStyle.SINGLE, size:4, color:'000000'};
     const kv = rows => rows.map(([a, b2]) => P([R(a + (b2 === null ? '' : '\t: ' + (b2 || '')), Z)], {tabs:[{type:TabStopType.LEFT, position:1900}], lex:240}));   /* daftar label : isi (paragraf bertab, bukan tabel bersarang) */
     const tiba = (a, d) => kv([['Tiba di', a], ['Pada Tanggal', d], ['Kepala', ''], ['', null]]), brk = (a, b2, d) => kv([['Berangkat dari', a], ['Ke', b2], ['Pada Tanggal', d], ['Kepala', '']]);
-    const nn = () => [P('', {...Z, lex:340, bd:{bottom:{style:BorderStyle.SINGLE, size:4, color:'000000', space:1}}, ind:{right:1300}}), P('NIP.', Z)];
+    const nn = () => [P('', {...Z, lex:400, bd:{bottom:{style:BorderStyle.SINGLE, size:4, color:'000000', space:1}}, ind:{right:1300}}), P('NIP.', Z)];
     const bd = (t, l, r, b2) => ({top:t ? LN1 : NONE, left:l ? LN1 : NONE, right:r ? LN1 : NONE, bottom:b2 ? LN1 : NONE});
     const row = (cells, h) => new TableRow({children:cells, cantSplit:true, height:h ? {value:h, rule:'atLeast'} : undefined});
     const blk = (n, l, r) => row([C(P(n, {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C([...l, ...nn()], {w:W[1], bd:bd(1, 0, 0, 0)}), C([...(Array.isArray(r) ? r : [r]), ...(r && r.__txt ? [] : nn())], {w:W[2], bd:bd(1, 1, 1, 0), ml:90 + G})], 1600);
     const att = `${c.jabatan || 'Pejabat Pembuat Komitmen'}${c.provinsi ? ' Prov. ' + c.provinsi : ''} yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.`;
-    const r1 = row([C(P(''), {w:W[0] + W[1], cs:2, bd:bd(1, 1, 0, 0)}), C(T([[C('I.', {w:G, nb:1, ml:0, mt:0, ...Z}), C([...brk0(), ...signParas(false, SG, 120, TT.spd, Z)], {w:W[2] - G, nb:1, ml:0, mt:0})]], [G, W[2] - G], {nb:1}), {w:W[2], bd:bd(1, 1, 1, 0), ml:90})], 1900);
+    const r1 = row([C(P(''), {w:W[0] + W[1], cs:2, bd:bd(1, 1, 0, 0)}), C(T([[C('I.', {w:G, nb:1, ml:0, mt:0, ...Z}), C([...brk0(), ...signParas(false, SG, 220, TT.spd, Z)], {w:W[2] - G, nb:1, ml:0, mt:0})]], [G, W[2] - G], {nb:1}), {w:W[2], bd:bd(1, 1, 1, 0), ml:90})], 1900);
     function brk0() { return kv([['Berangkat dari', s.asal], ['(Tempat Kedudukan)', null], ['Ke', s.tujuan], ['Pada Tanggal', dts(s.tb)]]); }
     const tdr = P('Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', {...Z, al:'j'}); tdr.__txt = true;
     const rows = [r1, blk('II.', tiba(s.tujuan, dts(s.tb)), brk(s.tujuan, s.asal, dts(s.tk))), blk('III.', tiba(), brk()), blk('IV.', tiba(), brk()), blk('V.', tiba(), brk()),
@@ -175,7 +175,7 @@ async function buildDocx(s, v) {
 
   const page = {size:{width:11906, height:16838}, margin:{top:2450, bottom:1000, left:1134, right:1134, header:560, footer:420}};
   const sec = (children, lap, nokop) => nokop
-    ? {properties:{page:{...page, margin:{...page.margin, top:700, bottom:700}}}, headers:{default:new Header({children:[P('')]})}, footers:{default:new Footer({children:[P('')]})}, children}   /* Lampiran SPD: tanpa kop surat */
+    ? {properties:{page:{...page, margin:{...page.margin, top:480, bottom:480}}}, headers:{default:new Header({children:[P('')]})}, footers:{default:new Footer({children:[P('')]})}, children}   /* Lampiran SPD: tanpa kop surat */
     : lap
     ? {properties:{page:{...page, margin:{top:1440, bottom:1440, left:1440, right:1440, header:600, footer:420}, pageNumbers:{start:1}}, titlePage:true}, headers:{first:new Header({children:[P('')]}), default:new Header({children:[P([new TextRun({children:[PageNumber.CURRENT], size:SZ, font:AR})], {al:'r'})]})}, footers:{first:new Footer({children:[P('')]}), default:new Footer({children:[P('')]})}, children}
     : {properties:{page}, headers:{default:new Header({children:kopHdr()})}, footers:{default:new Footer({children:[P('')]})}, children};

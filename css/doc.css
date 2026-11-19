@@ -114,6 +114,8 @@
   #pa.pn .paper{page:pn}
   @page pn{margin:20mm 20mm 18mm 25mm;@top-right{content:counter(page);font:12pt Arial,'Liberation Sans',sans-serif;color:#000}}
   @page pn:first{@top-right{content:none}}
+  #pa .paper.lamp{page:lamp}
+  @page lamp{margin:8mm 18mm 8mm}   /* lembar belakang SPD: margin atas/bawah lebih kecil agar ruang tanda tangan lebih luas */
 }
 
 /* v1.2.7 — tanda tangan elektronik (setelah persetujuan pimpinan) */
@@ -128,17 +130,18 @@
 .paper .lampt>tbody>tr>td:first-child{border-left:1px solid #000}.paper .lampt>tbody>tr>td:last-child{border-right:1px solid #000}
 .paper .lampt .c-rn{text-align:center;padding:.4mm 0 0}
 .paper .lampt .rt{border-left:1px solid #000;padding-left:5mm}
-.paper .lampt tr.lb{height:29mm}.paper .lampt tr.l7{height:6.5mm}
+.paper .lampt tr.lb{height:31mm}.paper .lampt tr.l7{height:6.5mm}
 .paper .lampt .ls{padding:.6mm 1mm 1.2mm}
 .paper .lampt .ltop{padding-top:7mm}
 .paper .lampt .lc .kv3 td:first-child{width:30mm}
 .paper .lampt .lrn{position:absolute;left:1mm;top:.3mm}
 .paper .lampt .lgap{height:1.2mm}
 .paper .lampt .lnm{position:absolute;left:1mm;right:2mm;bottom:.8mm}.paper .lampt .rt .lnm{left:5mm}
-.paper .lampt .lnl{height:6mm;border-bottom:1px solid #000;width:68%}
-.paper .lampt .sgb.nb{margin-top:0}.paper .lampt .sgb.nb .sg-sp{height:8mm}
+.paper .lampt .lnl{height:9mm;border-bottom:1px solid #000;width:68%}
+.paper .lampt .sgb.nb{margin-top:0}.paper .lampt .sgb.nb .sg-sp{height:10mm}
 .paper .lbot{margin-top:3mm;break-inside:avoid}
-.paper .lsgn{width:49%;margin-left:51%}.paper .lsgn .sg-sp{height:12mm}
+.paper .lsgn{width:49%;margin-left:51%}.paper .lsgn .sg-sp{height:15mm}
 .paper .lampt .ca{width:6.6%}.paper .lampt .cb{width:44.4%}.paper .lampt .cc{width:49%}
 .paper .lampt .kv3{width:100%;table-layout:fixed}.paper .lampt .rt .kv3 td:first-child{width:32mm}
 .paper.lamp,.paper.lamp *{line-height:1.04}   /* lembar belakang SPD: Arial 12 pt seperti dokumen lain; jarak baris dirapatkan agar muat satu halaman */
+.paper .lampt .kv3 td{padding:0}
