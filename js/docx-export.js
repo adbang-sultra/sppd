@@ -93,7 +93,7 @@ async function buildDocx(s, v) {
   const SPD = e => { const bd = s.bud || {}, n = lama(s.tb, s.tk), F = [{}, {}], W = [480, 420, 3100, 420, CW - 4420], Z = {sz:20, ln:216}, AB = {ml:50, mr:20};
     const r1 = (no, l, val, b) => [C(String(no), {w:W[0], al:'c', ...Z}), C(l, {w:W[1] + W[2], cs:2, ...Z}), C(P([R(val, {b, sz:20})]), {w:W[3] + W[4], cs:2})];
     const ab = (no, rows) => rows.map(([l, val], i) => [...(i === 0 ? [C(String(no), {w:W[0], al:'c', rs:rows.length, ...Z})] : []), C('abc'[i] + '.', {w:W[1], ...Z, ...AB}), C(l, {w:W[2], ...Z}), C('abc'[i] + '.', {w:W[3], ...Z, ...AB}), C(val, {w:W[4], ...Z})]);
-    const rows = [r1(1, 'Pejabat Pembuat Komitmen', s.pejabat || c.jabatan, 1), r1(2, 'Nama Pegawai Yang di Perintah', e.nama),
+    const rows = [r1(1, 'Pejabat yang Berwenang Memberi Perintah', SG.jabatan || s.pejabat || c.jabatan, 1), r1(2, 'Nama Pegawai Yang di Perintah', e.nama),
       ...ab(3, [['Pangkat dan Golongan', (e.pangkat || '') + (e.gol ? ' Gol. ' + e.gol : '')], ['Jabatan', e.jabatan], ['Tingkat Biaya Perjalanan Dinas', s.tingkat]]),
       r1(4, 'Maksud Perjalanan Dinas', maksud1(s)), r1(5, 'Alat Angkut yang dipergunakan', s.alat),
       ...ab(6, [['Tempat Berangkat', s.asal], ['Tempat Tujuan', (s.tujuan || '') + (s.inst ? ' (' + s.inst + ')' : '')]]),
@@ -104,13 +104,13 @@ async function buildDocx(s, v) {
       [C('a.', {w:W[1], ...Z, ...AB}), C('Instansi', {w:W[2], ...Z}), C('a.', {w:W[3], ...Z, ...AB}), C(c.instansi, {w:W[4], ...Z})], [C('b.', {w:W[1], ...Z, ...AB}), C('Akun', {w:W[2], ...Z}), C('b.', {w:W[3], ...Z, ...AB}), C(s.mata || bd.rek || '', {w:W[4], ...Z})],
       r1(10, 'Keterangan Lain-lain', s.ket || '')];
     return [T([[C('Lembar ke', {w:1700, nb:1, ...Z}), C(': 1', {w:2800, nb:1, ...Z})], [C('Kode No', {w:1700, nb:1, ...Z}), C(':', {w:2800, nb:1, ...Z})], [C('Nomor', {w:1700, nb:1, ...Z}), C(': ' + s.no, {w:2800, nb:1, ...Z})]], [1700, 2800], {nb:1, ind:CW - 4500}),
-      P([R('SURAT PERJALANAN DINAS (SPD)', {b:1, u:1})], {al:'c', bf:120, af:100}), T(rows, W), P('*Coret yang tidak perlu', {sz:18}), signArea(s.tgl, SG, 900, undefined, TT.spd)];
+      P([R('SURAT PERINTAH PERJALANAN DINAS (SPPD)', {b:1, u:1})], {al:'c', bf:120, af:100}), T(rows, W), P('*Coret yang tidak perlu', {sz:18}), signArea(s.tgl, SG, 900, undefined, TT.spd)];
   };
   /* ----- Lampiran SPD ----- */
   const LAMP = () => {   /* Lembar belakang SPD — mengikuti FORMAT_SPPD_BARU_2025 (sheet "Belakang"), Arial 8,5 pt agar satu halaman */
     const Z = {kop:1, f:AR, sz:24, lex:240}, W = [640, 4300, 4698], G = 300, c = D.cfg, LN1 = {style:BorderStyle.SINGLE, size:4, color:'000000'};
     const kv = rows => rows.map(([a, b2]) => P([R(a + (b2 === null ? '' : '\t: ' + (b2 || '')), Z)], {tabs:[{type:TabStopType.LEFT, position:1900}], lex:240}));   /* daftar label : isi (paragraf bertab, bukan tabel bersarang) */
-    const tiba = (a, d) => kv([['Tiba di', a], ['Pada Tanggal', d]]), brk = (a, b2, d) => kv([['Berangkat dari', a], ['Ke', b2], ['Pada Tanggal', d], ['', '']]);
+    const tiba = (a, d) => kv([['Tiba di', a], ['Pada Tanggal', d]]), brk = (a, b2, d) => kv([['Berangkat dari', a], ['Ke', b2], ['Pada Tanggal', d]]);
     const nn = () => [P('', {...Z, lex:400, bd:{bottom:{style:BorderStyle.SINGLE, size:4, color:'000000', space:1}}, ind:{right:1300}}), P('NIP.', Z)];
     const bd = (t, l, r, b2) => ({top:t ? LN1 : NONE, left:l ? LN1 : NONE, right:r ? LN1 : NONE, bottom:b2 ? LN1 : NONE});
     const row = (cells, h) => new TableRow({children:cells, cantSplit:true, height:h ? {value:h, rule:'atLeast'} : undefined});
@@ -119,8 +119,8 @@ async function buildDocx(s, v) {
     const r1 = row([C(P(''), {w:W[0] + W[1], cs:2, bd:bd(1, 1, 0, 0)}), C(T([[C('I.', {w:G, nb:1, ml:0, mt:0, ...Z}), C([...brk0(), ...signParas(false, SG, 220, TT.spd, Z, 1)], {w:W[2] - G, nb:1, ml:0, mt:0})]], [G, W[2] - G], {nb:1}), {w:W[2], bd:bd(1, 1, 1, 0), ml:90})], 1900);
     function brk0() { return kv([['Berangkat dari', s.asal], ['(Tempat Kedudukan)', null], ['Ke', s.tujuan], ['Pada Tanggal', dts(s.tb)]]); }
     const tdr = P('Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', {...Z, al:'j'}); tdr.__txt = true;
-    const rows = [r1, blk('II.', tiba(s.tujuan, dts(s.tb)), brk(s.tujuan, s.asal, dts(s.tk))), blk('III.', tiba(), brk()), blk('IV.', tiba(), brk()), blk('V.', tiba(), brk()),
-      new TableRow({children:[C(P('VI.', {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C([...tiba(), ...nn()], {w:W[1], bd:bd(1, 0, 0, 0)}), C([P('', {...Z, lex:480}), tdr], {w:W[2], bd:bd(1, 1, 1, 0), ml:90 + G})], cantSplit:true, height:{value:1500, rule:'atLeast'}}),
+    const rows = [r1, blk('II.', tiba(), brk()), blk('III.', tiba(), brk()), blk('IV.', tiba(), brk()), blk('V.', tiba(), brk()),
+      new TableRow({children:[C(P('VI.', {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C([...tiba(), ...nn()], {w:W[1], bd:bd(1, 0, 0, 0)}), C([tdr], {w:W[2], bd:bd(1, 1, 1, 0), ml:90 + G})], cantSplit:true, height:{value:1500, rule:'atLeast'}}),
       row([C(P('VII.', {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 0), ml:0, mr:0}), C(P('Catatan Lain', Z), {w:W[1] + W[2], cs:2, bd:bd(1, 0, 1, 0)})], 300),
       row([C(P('VIII.', {...Z, al:'c'}), {w:W[0], bd:bd(1, 1, 0, 1), ml:0, mr:0}), C([P('PERHATIAN :', Z), P(att, {...Z, al:'j'})], {w:W[1] + W[2], cs:2, bd:bd(1, 0, 1, 1)})], 850)];
     return [T(rows, W, {nb:1}), P('', {...Z, lex:120}), T([[C(P(''), {w:W[0] + W[1], nb:1}), C(signParas(true, SG, 300, TT.spd, Z), {w:W[2], nb:1, ml:90 + 150})]], [W[0] + W[1], W[2]], {nb:1})];

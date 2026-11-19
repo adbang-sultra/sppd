@@ -67,8 +67,8 @@ function dSPPD1(s, e) {
   const ab = (no, rows) => rows.map(([l, v], i) => `<tr>${i === 0 ? `<td class="c-no" rowspan="${rows.length}">${no}</td>` : ''}<td class="c-ab">${'abc'[i]}.</td><td>${l}</td><td class="c-ab">${'abc'[i]}.</td><td>${v}</td></tr>`).join('');
   const fol = F.length ? F : [{}, {}];
   return page('spd', `<table class="lbl lbr"><tr><td>Lembar ke</td><td>: 1</td></tr><tr><td>Kode No</td><td>: </td></tr><tr><td>Nomor</td><td>: ${esc(s.no)}</td></tr></table>
-  <div class="ttl1 u">SURAT PERJALANAN DINAS (SPD)</div>
-  <table class="dt spdt"><colgroup><col class="cw-no"><col class="cw-ab"><col class="cw-l"><col class="cw-ab"><col></colgroup>${r1(1, 'Pejabat Pembuat Komitmen', '<b>' + esc(s.pejabat || c.jabatan) + '</b>')}${r1(2, 'Nama Pegawai Yang di Perintah', esc(e.nama))}
+  <div class="ttl1 u">SURAT PERINTAH PERJALANAN DINAS (SPPD)</div>
+  <table class="dt spdt"><colgroup><col class="cw-no"><col class="cw-ab"><col class="cw-l"><col class="cw-ab"><col></colgroup>${r1(1, 'Pejabat yang Berwenang Memberi Perintah', '<b>' + esc(sg.jabatan || s.pejabat || c.jabatan) + '</b>')}${r1(2, 'Nama Pegawai Yang di Perintah', esc(e.nama))}
   ${ab(3, [['Pangkat dan Golongan', esc(e.pangkat) + (e.gol ? ' Gol. ' + esc(e.gol) : '')], ['Jabatan', esc(e.jabatan)], ['Tingkat Biaya Perjalanan Dinas', esc(s.tingkat || '')]])}
   ${r1(4, 'Maksud Perjalanan Dinas', esc(maksud1(s)))}${r1(5, 'Alat Angkut yang dipergunakan', esc(s.alat))}
   ${ab(6, [['Tempat Berangkat', esc(s.asal)], ['Tempat Tujuan', esc(s.tujuan) + (s.inst ? ' (' + esc(s.inst) + ')' : '')]])}
@@ -85,16 +85,16 @@ function dLamp(s) {
   const sg = signerOf(s, 'spdS'), c = D.cfg, tt = ttdOf(s, 'spd'), L = rows => `<table class="kv3">${rows.map(([a, b]) => `<tr><td>${a}</td><td>${b === null ? '' : ': ' + (b || '')}</td></tr>`).join('')}</table>`;
   const nn = '<div class="lnm"><div class="lnl"></div><div>NIP.</div></div>';
   const tiba = (a = '', d = '') => L([['Tiba di', esc(a)], ['Pada Tanggal', d]]);   /* tanpa kata "Kepala"; kolom kiri tanpa baris titik dua kosong, lalu garis + NIP */
-  const brk = (a = '', b = '', d = '') => L([['Berangkat dari', esc(a)], ['Ke', esc(b)], ['Pada Tanggal', d], ['', '']]);
+  const brk = (a = '', b = '', d = '') => L([['Berangkat dari', esc(a)], ['Ke', esc(b)], ['Pada Tanggal', d]]);
   const blk = (n, l, r, rc = '', rn = true) => `<tr class="lb"><td class="c-rn">${n}</td><td class="lc">${l}${nn}</td><td class="lc rt ${rc}">${r}${rn ? nn : ''}</td></tr>`;
   const att = `${esc(c.jabatan || 'Pejabat Pembuat Komitmen')}${c.provinsi ? ' Prov. ' + esc(c.provinsi) : ''} yang menerbitkan SPD, pegawai yang melakukan perjalanan dinas, para pejabat yang mengesahkan tanggal berangkat/tiba, serta bendahara pengeluaran bertanggung jawab berdasarkan peraturan-peraturan Keuangan Negara apabila negara menderita rugi akibat kesalahan, kelalaian, dan kealpaannya.`;
   return page('lamp', `<table class="lampt"><colgroup><col class="ca"><col class="cb"><col class="cc"></colgroup>
   <tr class="r1"><td colspan="2" class="lc"></td><td class="lc rt l1j"><span class="lrn">I.</span>${L([['Berangkat dari', esc(s.asal)], ['(Tempat Kedudukan)', null], ['Ke', esc(s.tujuan)], ['Pada Tanggal', dts(s.tb)]])}<div class="lgap"></div>${sign(sg.jabatan, sg.nama, sg.nip, false, '', tt, true)}</td></tr>
-  ${blk('II.', tiba(s.tujuan, dts(s.tb)), brk(s.tujuan, s.asal, dts(s.tk)))}
+  ${blk('II.', tiba(), brk())}
   ${blk('III.', tiba(), brk())}
   ${blk('IV.', tiba(), brk())}
   ${blk('V.', tiba(), brk())}
-  ${blk('VI.', tiba(), 'Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', 'just2 ltop', false)}
+  ${blk('VI.', tiba(), 'Telah diperiksa, dengan keterangan bahwa perjalanan tersebut di atas benar dilakukan atas perintahnya dan semata-mata untuk kepentingan jabatan dalam waktu yang sesingkat-singkatnya.', 'just2', false)}
   <tr class="l7"><td class="c-rn">VII.</td><td colspan="2" class="ls">Catatan Lain</td></tr>
   <tr class="l8"><td class="c-rn">VIII.</td><td colspan="2" class="ls just2">PERHATIAN :<br>${att}</td></tr></table>
   <div class="lbot"><div class="lsgn">${signS(sg, true, tt)}</div></div>`, true);
