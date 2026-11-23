@@ -33,7 +33,7 @@
 /* Surat Tugas — mengikuti contoh SPT (Kepada: Nama/Jabatan/NIP/Pangkat per orang, lalu Selama, Untuk) */
 .paper.st .pbody{line-height:1.18}
 .st-t{text-align:center;font-weight:700;text-decoration:underline;margin-top:1mm}
-.st-n{text-align:center;margin-bottom:5mm}
+.st-n{text-align:center;margin-bottom:5mm}.st-nb{display:inline-block;width:60mm}   /* nomor belum diisi: ruang kosong untuk ditulis tangan, "Nomor :" bergeser ke kiri */
 .st-m{text-align:center;margin-bottom:4mm}
 .paper .st-l>tbody>tr>td{padding:0 0 3mm}
 .st-l .ol{padding-left:6mm}.paper .st-l .ol li{margin-bottom:0}
