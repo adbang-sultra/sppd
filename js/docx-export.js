@@ -69,7 +69,7 @@ async function buildDocx(s, v) {
   const signParas = (box, sg = SG, gap = box ? 1300 : 1000, tt = null, z = {}, l1 = 0) => { const al = 'l', nip = sg.nip && sg.nip !== '-' ? 'NIP. ' + sg.nip : 'NIP.';
     let hh = Math.round(gap / 15 * .9), ww = tt ? Math.round(hh * tt.w / tt.h) : 0; if (ww > 170) { ww = 170; hh = Math.round(ww * tt.h / tt.w); }
     const spc = tt ? [new Paragraph({children:[new ImageRun({type:tt.type, data:tt.data, transformation:{width:ww, height:hh}})], spacing:{before:0, after:0}})] : [sp(gap)];
-    return [P(l1 ? (sg.jabatan || '') : (sg.jabatan || '').toUpperCase() + ',', {b:l1 ? 0 : 1, al, ...z}), ...spc, P([R(sg.nama || '..............................', {b:1, u:1, ...z})], {al, ...z}), ...(sg.pangkat && !l1 ? [P(sg.pangkat, {al, ...z})] : []), P(nip, {al, ...z}), ...(tt ? [P('Disetujui secara elektronik · ' + dts(tt.at), {al, sz:15, f:AR, kop:1})] : [])]; };
+    return [P(l1 ? (sg.jabatan || '') : (sg.jabatan || '').toUpperCase() + ',', {b:l1 ? 0 : 1, al, ...z}), ...spc, P([R(sg.nama || '..............................', {b:1, u:1, ...z})], {al, ...z}), ...(nil(sg.pangkat) && !l1 ? [P(sg.pangkat, {al, ...z})] : []), P(nip, {al, ...z}), ...(tt ? [P('Disetujui secara elektronik · ' + dts(tt.at), {al, sz:15, f:AR, kop:1})] : [])]; };
   const SL = Math.round(CW * .40), SR = CW - SL;                       /* blok tanda tangan: kolom kanan, rata kiri (seperti contoh SPT) */
   const signBox = (sg, gap, tt) => T([[C(signParas(true, sg, gap, tt), {w:SR, nb:1, ml:0})]], [SR], {nb:1});
   const issuedT = tgl => T([[C('Dikeluarkan di', {w:1900, nb:1, ml:0}), C(': ' + kc('kota'), {w:2900, nb:1})], [C('Pada tanggal', {w:1900, nb:1, ml:0}), C(': ' + dts(tgl), {w:2900, nb:1})]], [1900, 2900], {nb:1});
@@ -80,7 +80,7 @@ async function buildDocx(s, v) {
     const L = 1250, M = 300, R2 = CW - L - M, K = 1700, G = 220;
     const num = (a, bf = 0) => a.map((x, i) => P(`${i + 1}.\t${x}`, {al:'j', ind:{left:360, hanging:360}, tabs:[{type:'left', position:360}], bf:i ? 0 : bf}));
     const row = (lab, kids, bf = 0) => [C([P(lab, {bf})], {w:L, nb:1, ml:0}), C([P(':', {bf})], {w:M, nb:1}), C(kids, {w:R2, nb:1})];
-    const orang = Pt.flatMap((p, i) => [T([['Nama', p.nama], ['Jabatan', p.jabatan], ['NIP', fmtNip(p.nip)], ['Pangkat/Gol', p.pg]].map(([a, v]) => [C(a, {w:K, nb:1, ml:0, mt:0, mb:0}), C(': ' + (v || '-'), {w:R2 - K, nb:1, mt:0, mb:0})]), [K, R2 - K], {nb:1}), ...(i < Pt.length - 1 ? [sp(100)] : [])]);
+    const orang = Pt.flatMap((p, i) => [T([['Nama', p.nama], ['Jabatan', p.jabatan], ['NIP', fmtNip(p.nip)], ...(p.p3k ? [] : [['Pangkat/Gol', p.pg]])].map(([a, v]) => [C(a, {w:K, nb:1, ml:0, mt:0, mb:0}), C(': ' + (v || '-'), {w:R2 - K, nb:1, mt:0, mb:0})]), [K, R2 - K], {nb:1}), ...(i < Pt.length - 1 ? [sp(100)] : [])]);
     return [P([R('SURAT TUGAS', {b:1, u:1})], {al:'c'}), P('Nomor : ' + (s.stNo || '...............................'), {al:'c', af:300}),
       T([row('Dasar', ds.length > 1 ? num(ds) : [P(ds[0] || '-', {al:'j'})])], [L, M, R2], {nb:1}),
       P('MENUGASKAN:', {al:'c', bf:300, af:280}),
@@ -127,7 +127,7 @@ async function buildDocx(s, v) {
   };
   /* ----- Rincian Biaya & Kuitansi (tanda tangan basah) ----- */
   const BIAYA = () => { const e = pegOf(s), B = s.biaya || [], tot = totB(s), bd = s.bud || {}, n = lama(s.tb, s.tk), W = [600, 4338, 2000, 2700], Z = {sz:21}, NO = {nb:1, ml:0};
-    const wet = (ttl, nama, nip, pk) => [P(ttl, Z), sp(1100), P([R(nama || '...............................', {b:1, u:1})]), ...(pk ? [P(pk, Z)] : []), P(nip && nip !== '-' ? 'NIP. ' + nip : 'NIP.', Z)];
+    const wet = (ttl, nama, nip, pk) => [P(ttl, Z), sp(1100), P([R(nama || '...............................', {b:1, u:1})]), ...(nil(pk) ? [P(pk, Z)] : []), P(nip && nip !== '-' ? 'NIP. ' + nip : 'NIP.', Z)];
     const kv = (rows, w = 3000) => T(rows.map(([a, v, o]) => [C(a, {w, ...NO, ...Z}), C(':', {w:300, nb:1, ...Z}), C(P([R(v, {sz:21, ...(o || {})})], {al:'j'}), {w:CW - w - 300, nb:1})]), [w, 300, CW - w - 300], {nb:1});
     const half = CW / 2, third = Math.floor(CW / 3);
     return [P('RINCIAN BIAYA PERJALANAN DINAS', {al:'c', b:1, sz:23, af:200}), kv([['Lampiran SPD Nomor', s.no], ['Tanggal', dts(s.tgl)]]), sp(160),

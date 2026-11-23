@@ -35,7 +35,7 @@ const kop = () => {
 };
 
 /* ---------- Tanda tangan (manual/basah) ---------- */
-const sgPk = p => p ? `<div class="tte-p">${esc(p)}</div>` : '';
+const sgPk = p => nil(p) ? `<div class="tte-p">${esc(p)}</div>` : '';
 /* blok tanda tangan: jabatan, ruang kosong untuk tanda tangan basah, nama, pangkat (bila ada), NIP; box=false → rata kiri */
 function sign(jab, nama, nip, box = true, pk = '', ttd = null, raw = false) {
   jab = raw ? esc(jab || '') : esc((jab || '').toUpperCase()) + ',';   /* raw: jabatan apa adanya, tanpa huruf kapital & koma (blok I lembar belakang SPD) */ const nm = esc(nama || '...............................'), np = nip && nip !== '-' ? 'NIP. ' + esc(nip) : 'NIP.';
@@ -53,7 +53,7 @@ function dST(s) {
   return page('st', `<div class="st-t">SURAT TUGAS</div><div class="st-n">Nomor : ${esc(s.stNo || '...............................')}</div>
   <table class="lbl st-l">${row('Dasar', ds.length > 1 ? ol(ds) : esc(ds[0] || '-'), 'just2')}</table>
   <div class="st-m">MENUGASKAN:</div>
-  <table class="lbl st-l">${row('Kepada', P.map(p => `<table class="st-p">${kv('Nama', p.nama)}${kv('Jabatan', p.jabatan)}${kv('NIP', fmtNip(p.nip))}${kv('Pangkat/Gol', p.pg)}</table>`).join(''))}
+  <table class="lbl st-l">${row('Kepada', P.map(p => `<table class="st-p">${kv('Nama', p.nama)}${kv('Jabatan', p.jabatan)}${kv('NIP', fmtNip(p.nip))}${p.p3k ? '' : kv('Pangkat/Gol', p.pg)}</table>`).join(''))}
   ${row('Selama', `${n} (${terbilang(n).toLowerCase()}) hari dari tanggal ${perST(s)}.`)}
   ${row('Untuk', esc(U.head) + (U.items.length ? ol(U.items) : ''), 'just2')}</table>
   <p class="st-d">Demikian Surat Tugas ini dibuat untuk dilaksanakan dengan penuh rasa tanggung jawab.</p>

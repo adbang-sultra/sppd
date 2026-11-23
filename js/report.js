@@ -13,13 +13,21 @@ const pj = t => { const a = lines(t); return a.length ? a.map(x => `<p class="lp
 /* satu baris biasa (tanpa nomor/butir) = paragraf uraian; selebihnya daftar bernomor */
 const lstp = t => { const a = lines(t); return a.length === 1 && !isB(a[0]) && !/^\d+[.)]\s/.test(a[0]) ? pj(t) : lst(t); };
 const lh1 = (n, t) => `<div class="lh1"><i>${n}</i><span>${t}</span></div>`, lh2 = (n, t) => `<div class="lh2"><i>${n}</i><span>${t}</span></div>`;
-const pgk = (p, g) => [p, g ? 'Gol. ' + g : ''].filter(Boolean).join(', ');
+/* nilai kosong/strip ("-", "- / -") dianggap tidak ada */
+const nil = v => !v || /^[\s\-–—/]*$/.test(String(v)) ? '' : String(v);
+const pgk = (p, g) => [nil(p), nil(g) ? 'Gol. ' + nil(g) : ''].filter(Boolean).join(', ');
+/* PPPK (P3K) tidak memiliki pangkat/golongan: dikenali dari Status Pegawai (data pegawai, dicari lewat NIP/ID) atau kata PPPK/P3K pada jabatan */
+/* golongan pengikut disimpan "Pangkat / Gol" — pisahkan agar pangkat tidak tertulis dua kali */
+const fpg = (f, m) => { const g = String(f.gol || ''), i = g.lastIndexOf(' / '); return {pangkat:nil(m.pangkat) || (i > -1 ? nil(g.slice(0, i)) : ''), gol:nil(m.gol) || nil(i > -1 ? g.slice(i + 3) : g)}; };
+const isP3K = (...o) => o.some(x => x && (x.status === 'PPPK' || /\b(PPPK|P3K)\b/i.test(x.jabatan || '')));
 /* daftar petugas (pegawai + pengikut) dengan pangkat/golongan; pangkat pengikut diambil dari data pegawai lewat NIP */
 const petugas = s => { const e = pegOf(s), byNip = n => (n && D.emp.find(x => x.nip === n)) || {};
-  return [{nama:e.nama, nip:e.nip, jabatan:e.jabatan, pg:pgk(e.pangkat, e.gol)}, ...(s.fol || []).map(f => { const m = byNip(f.nip); return {nama:f.nama, nip:f.nip, jabatan:f.jabatan || m.jabatan, pg:pgk(m.pangkat, f.gol || m.gol)}; })].filter(p => p.nama); };
+  const e0 = emp(s.empId) || byNip(e.nip), p0 = isP3K(e, e0);
+  return [{nama:e.nama, nip:e.nip, jabatan:e.jabatan, p3k:p0, pg:p0 ? '' : pgk(e.pangkat, e.gol)}, ...(s.fol || []).map(f => { const m = byNip(f.nip), k = isP3K(f, m); return {nama:f.nama, nip:f.nip, jabatan:f.jabatan || m.jabatan, p3k:k, pg:k ? '' : (q => pgk(q.pangkat, q.gol))(fpg(f, m))}; })].filter(p => p.nama); };
 /* orang yang masing-masing dibuatkan SPD: pegawai utama lalu tiap pengikut (pangkat pengikut dari data pegawai lewat NIP) */
 const spdPeople = s => { const e = pegOf(s), byNip = n => (n && D.emp.find(x => x.nip === n)) || {};
-  const a = [{nama:e.nama, jabatan:e.jabatan, pangkat:e.pangkat, gol:e.gol}, ...(s.fol || []).map(f => { const m = byNip(f.nip); return {nama:f.nama, jabatan:f.jabatan || m.jabatan, pangkat:m.pangkat, gol:f.gol || m.gol}; })].filter(p => p.nama);
+  const e0 = emp(s.empId) || byNip(e.nip), p0 = isP3K(e, e0);
+  const a = [{nama:e.nama, jabatan:e.jabatan, p3k:p0, pangkat:p0 ? '' : nil(e.pangkat), gol:p0 ? '' : nil(e.gol)}, ...(s.fol || []).map(f => { const m = byNip(f.nip), k = isP3K(f, m); return {nama:f.nama, jabatan:f.jabatan || m.jabatan, p3k:k, ...(k ? {pangkat:'', gol:''} : fpg(f, m))}; })].filter(p => p.nama);
   return a.length ? a : [{}]; };
 /* NIP 18 digit ditulis berkelompok seperti surat resmi: 19940702 202504 2 006 */
 const fmtNip = n => { const d = String(n || '').replace(/\s+/g, ''); return /^\d{18}$/.test(d) ? `${d.slice(0, 8)} ${d.slice(8, 14)} ${d.slice(14, 15)} ${d.slice(15)}` : String(n || ''); };
