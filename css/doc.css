@@ -53,7 +53,7 @@
 
 /* SPD */
 .spdt{line-height:1.2;table-layout:fixed}.spdt .cw-no{width:8mm}.spdt .cw-ab{width:6mm}.spdt .cw-l{width:60mm}
-.spd .kop2{margin-bottom:3mm}.spd .lbl.lbr td{padding:0}.spd .spdt{line-height:1.12}.spd .crt{margin-top:.3mm}.spd .sgw{margin-top:2mm}.spd .iss{margin-bottom:2mm}.spd .sg-sp{height:20mm}.spd .ttl1.u{margin:3mm 0 2mm}.paper .spdt td{padding:.3mm 1.6mm}
+.spd .kop2{margin-bottom:3mm}.spd .lbl.lbr td{padding:0}.spd .lbl.lbr td:first-child{padding-right:3mm}.spd .spdt{line-height:1.12}.spd .crt{margin-top:.3mm}.spd .sgw{margin-top:2mm}.spd .iss{margin-bottom:2mm}.spd .sg-sp{height:20mm}.spd .ttl1.u{margin:3mm 0 2mm}.paper .spdt td{padding:.3mm 1.6mm}
 .spdt td.c-ab{border-right:none!important}
 .spdt td.c-ab+td{border-left:none!important}
 .crt{margin-top:.6mm}
