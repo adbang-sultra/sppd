@@ -81,7 +81,7 @@ async function buildDocx(s, v) {
     const num = (a, bf = 0) => a.map((x, i) => P(`${i + 1}.\t${x}`, {al:'j', ind:{left:360, hanging:360}, tabs:[{type:'left', position:360}], bf:i ? 0 : bf}));
     const row = (lab, kids, bf = 0) => [C([P(lab, {bf})], {w:L, nb:1, ml:0}), C([P(':', {bf})], {w:M, nb:1}), C(kids, {w:R2, nb:1})];
     const orang = Pt.flatMap((p, i) => [T([['Nama', p.nama], ['Jabatan', p.jabatan], ['NIP', fmtNip(p.nip)], ...(p.p3k ? [] : [['Pangkat/Gol', p.pg]])].map(([a, v]) => [C(a, {w:K, nb:1, ml:0, mt:0, mb:0}), C(': ' + (v || '-'), {w:R2 - K, nb:1, mt:0, mb:0})]), [K, R2 - K], {nb:1}), ...(i < Pt.length - 1 ? [sp(100)] : [])]);
-    return [P([R('SURAT TUGAS', {b:1, u:1})], {al:'c'}), P('Nomor : ' + (s.stNo || '...............................'), {al:'c', af:300}),
+    return [P([R('SURAT TUGAS', {b:1, u:1})], {al:'c'}), P('Nomor : ' + (s.stNo || ''), {al:'c', af:300}),
       T([row('Dasar', ds.length > 1 ? num(ds) : [P(ds[0] || '-', {al:'j'})])], [L, M, R2], {nb:1}),
       P('MENUGASKAN:', {al:'c', bf:300, af:280}),
       T([row('Kepada', orang), row('Selama', [P(`${n} (${terbilang(n).toLowerCase()}) hari dari tanggal ${perST(s)}.`, {bf:G})], G),

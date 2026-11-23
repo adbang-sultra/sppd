@@ -50,7 +50,7 @@ function dST(s) {
   const P = petugas(s), n = lama(s.tb, s.tk), ds = String(s.dasar || '').split(/;|\n/).map(x => x.trim()).filter(Boolean), sg = signerOf(s, 'stS'), U = untuk(s);
   const ol = a => `<ol class="ol">${a.map(x => `<li>${esc(x)}</li>`).join('')}</ol>`, kv = (a, b) => `<tr><td class="k1">${a}</td><td>: ${esc(b || '-')}</td></tr>`;
   const row = (l, v, cls = '') => `<tr><td class="l1">${l}</td><td class="l2">:</td><td class="${cls}">${v}</td></tr>`;
-  return page('st', `<div class="st-t">SURAT TUGAS</div><div class="st-n">Nomor : ${esc(s.stNo || '...............................')}</div>
+  return page('st', `<div class="st-t">SURAT TUGAS</div><div class="st-n">Nomor : ${esc(s.stNo || '')}</div>
   <table class="lbl st-l">${row('Dasar', ds.length > 1 ? ol(ds) : esc(ds[0] || '-'), 'just2')}</table>
   <div class="st-m">MENUGASKAN:</div>
   <table class="lbl st-l">${row('Kepada', P.map(p => `<table class="st-p">${kv('Nama', p.nama)}${kv('Jabatan', p.jabatan)}${kv('NIP', fmtNip(p.nip))}${p.p3k ? '' : kv('Pangkat/Gol', p.pg)}</table>`).join(''))}
