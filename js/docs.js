@@ -74,7 +74,7 @@ function dSPPD1(s, e) {
   ${ab(6, [['Tempat Berangkat', esc(s.asal)], ['Tempat Tujuan', esc(s.tujuan) + (s.inst ? ' (' + esc(s.inst) + ')' : '')]])}
   ${ab(7, [['Lamanya Perjalanan Dinas', hari(n)], ['Tanggal berangkat', dts(s.tb)], ['Tanggal Harus Kembali', dts(s.tk)]])}
   <tr><td class="c-no" rowspan="${fol.length + 1}">8.</td><td colspan="2">Pengikut : nama</td><td colspan="2" class="ctr">Keterangan</td></tr>${fol.map((f, i) => `<tr><td class="c-ab">${f.nama ? i + 1 : '&nbsp;'}</td><td>${esc(f.nama)}</td><td colspan="2">${esc(f.jabatan)}</td></tr>`).join('')}
-  <tr><td class="c-no" rowspan="3">9</td><td colspan="2">Pembebanan Anggaran</td><td colspan="2">${esc(bd.sumber || '')}${bd.ta ? ' TA ' + esc(bd.ta) : ''}</td></tr><tr><td class="c-ab">a.</td><td>Instansi</td><td class="c-ab">a.</td><td>${esc(c.instansi)}</td></tr><tr><td class="c-ab">b.</td><td>Mata Anggaran</td><td class="c-ab">b.</td><td></td></tr>
+  <tr><td class="c-no" rowspan="3">9</td><td colspan="2">Pembebanan Anggaran</td><td colspan="2">${esc(s.beban || bebanOf(bd))}</td></tr><tr><td class="c-ab">a.</td><td>Instansi</td><td class="c-ab">a.</td><td>${esc(s.instB || c.instansi)}</td></tr><tr><td class="c-ab">b.</td><td>Mata Anggaran</td><td class="c-ab">b.</td><td>${esc(s.mata || '')}</td></tr>
   ${r1(10, 'Keterangan Lain-lain', esc(s.ket || ''))}</table><div class="crt">*Coret yang tidak perlu</div>
   <div class="sgw">${issued(s.tgl)}${signS(sg, true, ttdOf(s, 'spd'))}</div>`);
 }

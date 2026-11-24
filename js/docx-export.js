@@ -100,8 +100,8 @@ async function buildDocx(s, v) {
       ...ab(7, [['Lamanya Perjalanan Dinas', hari(n)], ['Tanggal berangkat', dts(s.tb)], ['Tanggal Harus Kembali', dts(s.tk)]]),
       [C('8.', {w:W[0], al:'c', rs:F.length + 1, ...Z}), C('Pengikut : nama', {w:W[1] + W[2], cs:2, ...Z}), C('Keterangan', {w:W[3] + W[4], cs:2, al:'c', ...Z})],
       ...F.map((f, i) => [C(f.nama ? String(i + 1) : '', {w:W[1], ...Z, ...AB}), C(f.nama || '', {w:W[2], ...Z}), C(f.jabatan || '', {w:W[3] + W[4], cs:2, ...Z})]),
-      [C('9', {w:W[0], al:'c', rs:3, ...Z}), C('Pembebanan Anggaran', {w:W[1] + W[2], cs:2, ...Z}), C((bd.sumber || '') + (bd.ta ? ' TA ' + bd.ta : ''), {w:W[3] + W[4], cs:2, ...Z})],
-      [C('a.', {w:W[1], ...Z, ...AB}), C('Instansi', {w:W[2], ...Z}), C('a.', {w:W[3], ...Z, ...AB}), C(c.instansi, {w:W[4], ...Z})], [C('b.', {w:W[1], ...Z, ...AB}), C('Mata Anggaran', {w:W[2], ...Z}), C('b.', {w:W[3], ...Z, ...AB}), C('', {w:W[4], ...Z})],
+      [C('9', {w:W[0], al:'c', rs:3, ...Z}), C('Pembebanan Anggaran', {w:W[1] + W[2], cs:2, ...Z}), C(s.beban || bebanOf(bd), {w:W[3] + W[4], cs:2, ...Z})],
+      [C('a.', {w:W[1], ...Z, ...AB}), C('Instansi', {w:W[2], ...Z}), C('a.', {w:W[3], ...Z, ...AB}), C(s.instB || c.instansi, {w:W[4], ...Z})], [C('b.', {w:W[1], ...Z, ...AB}), C('Mata Anggaran', {w:W[2], ...Z}), C('b.', {w:W[3], ...Z, ...AB}), C(s.mata || '', {w:W[4], ...Z})],
       r1(10, 'Keterangan Lain-lain', s.ket || '')];
     return [T([[C('Lampiran ke', {w:1700, nb:1, ...Z}), C(':', {w:2800, nb:1, ...Z})], [C('Kode No', {w:1700, nb:1, ...Z}), C(':', {w:2800, nb:1, ...Z})], [C('Nomor', {w:1700, nb:1, ...Z}), C(': ' + s.no, {w:2800, nb:1, ...Z})]], [1700, 2800], {nb:1, ind:CW - 4500}),
       P([R('SURAT PERINTAH PERJALANAN DINAS', {b:1, u:1})], {al:'c', bf:120, af:100}), T(rows, W), P('*Coret yang tidak perlu', {sz:18}), signArea(s.tgl, SG, 900, undefined, TT.spd)];
