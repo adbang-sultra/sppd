@@ -67,7 +67,7 @@ function dSPPD1(s, e) {
   const ab = (no, rows) => rows.map(([l, v], i) => `<tr>${i === 0 ? `<td class="c-no" rowspan="${rows.length}">${no}</td>` : ''}<td class="c-ab">${'abc'[i]}.</td><td>${l}</td><td class="c-ab">${'abc'[i]}.</td><td>${v}</td></tr>`).join('');
   const fol = F.length ? F : [{}, {}];
   return page('spd', `<table class="lbl lbr"><tr><td>Lampiran ke</td><td>: </td></tr><tr><td>Kode No</td><td>: </td></tr><tr><td>Nomor</td><td>: ${esc(s.no)}</td></tr></table>
-  <div class="ttl1 u">SURAT PERINTAH PERJALANAN DINAS</div>
+  <div class="ttl1 u nu">SURAT PERINTAH PERJALANAN DINAS</div>
   <table class="dt spdt"><colgroup><col class="cw-no"><col class="cw-ab"><col class="cw-l"><col class="cw-ab"><col></colgroup>${r1(1, 'Pejabat yang Berwenang Memberi Perintah', '<b>' + esc(sg.jabatan || s.pejabat || c.jabatan) + '</b>')}${r1(2, 'Nama Pegawai Yang di Perintah', esc(e.nama))}
   ${ab(3, [['Pangkat dan Golongan', esc(e.pangkat) + (e.gol ? ' Gol. ' + esc(e.gol) : '')], ['Jabatan', esc(e.jabatan)], ['Tingkat Biaya Perjalanan Dinas', esc(s.tingkat || '')]])}
   ${r1(4, 'Maksud Perjalanan Dinas', esc(maksud1(s)))}${r1(5, 'Alat Angkut yang dipergunakan', esc(s.alat))}

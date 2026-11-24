@@ -81,7 +81,7 @@ async function buildDocx(s, v) {
     const num = (a, bf = 0) => a.map((x, i) => P(`${i + 1}.\t${x}`, {al:'j', ind:{left:360, hanging:360}, tabs:[{type:'left', position:360}], bf:i ? 0 : bf}));
     const row = (lab, kids, bf = 0) => [C([P(lab, {bf})], {w:L, nb:1, ml:0}), C([P(':', {bf})], {w:M, nb:1}), C(kids, {w:R2, nb:1})];
     const orang = Pt.flatMap((p, i) => [T([['Nama', p.nama], ['Jabatan', p.jabatan], ['NIP', fmtNip(p.nip)], ...(p.p3k ? [] : [['Pangkat/Gol', p.pg]])].map(([a, v]) => [C(a, {w:K, nb:1, ml:0, mt:0, mb:0}), C(': ' + (v || '-'), {w:R2 - K, nb:1, mt:0, mb:0})]), [K, R2 - K], {nb:1}), ...(i < Pt.length - 1 ? [sp(100)] : [])]);
-    return [P([R('SURAT TUGAS', {b:1, u:1})], {al:'c'}), P('Nomor : ' + (s.stNo || '\u00A0'.repeat(48)), {al:'c', af:300}),
+    return [P([R('SURAT TUGAS', {b:1})], {al:'c'}), P('Nomor : ' + (s.stNo || '\u00A0'.repeat(48)), {al:'c', af:300}),
       T([row('Dasar', ds.length > 1 ? num(ds) : [P(ds[0] || '-', {al:'j'})])], [L, M, R2], {nb:1}),
       P('MENUGASKAN:', {al:'c', bf:300, af:280}),
       T([row('Kepada', orang), row('Selama', [P(`${n} (${terbilang(n).toLowerCase()}) hari dari tanggal ${perST(s)}.`, {bf:G})], G),
@@ -104,7 +104,7 @@ async function buildDocx(s, v) {
       [C('a.', {w:W[1], ...Z, ...AB}), C('Instansi', {w:W[2], ...Z}), C('a.', {w:W[3], ...Z, ...AB}), C(s.instB || c.instansi, {w:W[4], ...Z})], [C('b.', {w:W[1], ...Z, ...AB}), C('Mata Anggaran', {w:W[2], ...Z}), C('b.', {w:W[3], ...Z, ...AB}), C(s.mata || '', {w:W[4], ...Z})],
       r1(10, 'Keterangan Lain-lain', s.ket || '')];
     return [T([[C('Lampiran ke', {w:1700, nb:1, ...Z}), C(':', {w:2800, nb:1, ...Z})], [C('Kode No', {w:1700, nb:1, ...Z}), C(':', {w:2800, nb:1, ...Z})], [C('Nomor', {w:1700, nb:1, ...Z}), C(': ' + s.no, {w:2800, nb:1, ...Z})]], [1700, 2800], {nb:1, ind:CW - 4500}),
-      P([R('SURAT PERINTAH PERJALANAN DINAS', {b:1, u:1})], {al:'c', bf:120, af:100}), T(rows, W), P('*Coret yang tidak perlu', {sz:18}), signArea(s.tgl, SG, 900, undefined, TT.spd)];
+      P([R('SURAT PERINTAH PERJALANAN DINAS', {b:1})], {al:'c', bf:120, af:100}), T(rows, W), P('*Coret yang tidak perlu', {sz:18}), signArea(s.tgl, SG, 900, undefined, TT.spd)];
   };
   /* ----- Lampiran SPD ----- */
   const LAMP = () => {   /* Lembar belakang SPD — mengikuti FORMAT_SPPD_BARU_2025 (sheet "Belakang"), Arial 8,5 pt agar satu halaman */
