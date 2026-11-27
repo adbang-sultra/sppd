@@ -89,9 +89,127 @@ fs.mkdirSync(OUT, {recursive:true});
   if (!/Kesimpulan AI/.test(aiDbg)) ok(false, 'AI: kode akses lalu isi laporan', aiDbg);
   const ai1 = await p.evaluate(() => ({latar:$('#l_latar').value, mt:$('#l_mt').value, keg:$('#l_keg').value, tl:$('#l_tl').value, pen:$('#l_penutup').value, ro:$('#l_kes').readOnly}));
   ok(/AI paragraf/.test(ai1.mt + ai1.keg) === false && ai1.latar === 'Latar manual saya' && /^Maksud AI/.test(ai1.mt) && /Kegiatan AI satu/.test(ai1.keg) && /Saran AI/.test(ai1.tl) && ai1.pen === 'Penutup AI.' && !ai1.ro, 'AI: mengisi bagian kosong (kode akses diminta), isian manual tidak ditimpa, hasil bisa diedit', JSON.stringify(ai1));
-  await p.check('#ai_over'); await p.click('[data-act="aiLap"]'); await p.waitForFunction(() => $('#l_latar').value.includes('Latar AI'), null, {timeout:8000});
-  ok(true, 'AI: opsi "Timpa isian" mengganti isi yang sudah ada');
+  await p.check('#ai_over'); await p.click('[data-act="aiLap"]');
+  ok(await until(p, () => $('#l_latar').value.includes('Latar AI'), null, 8000), 'AI: opsi "Timpa isian" mengganti isi yang sudah ada');
   await p.fill('#l_kes', 'Kesimpulan hasil edit saya'); ok(await p.inputValue('#l_kes') === 'Kesimpulan hasil edit saya', 'AI: hasil dapat diedit setelah dibuat');
+
+  /* ===== v1.4.0: prompt per bagian laporan + Model AI di Pengaturan ===== */
+  console.log('\n[AI-1.4] Prompt per bagian laporan & Model AI (Pengaturan)');
+  const aiHook = () => p.evaluate(() => { if (window.__aiReq) return; window.__aiReq = []; const f = window.fetch.bind(window); window.fetch = (u, o) => { if (String(u).includes('/api/ai')) { try { window.__aiReq.push(JSON.parse(o.body)); } catch {} } return f(u, o); }; });
+  await aiHook();
+  const aiST = await p.evaluate(() => JSON.stringify(ST));
+  const aiStBack = () => p.evaluate(j => { const o = JSON.parse(j); for (const k of Object.keys(o)) { Object.keys(ST[k]).forEach(x => { if (!(x in o[k])) delete ST[k][x]; }); Object.assign(ST[k], o[k]); } }, aiST);   // pulihkan status halaman (ST) seperti sebelum blok ini
+  const aiLast = () => p.evaluate(() => window.__aiReq[window.__aiReq.length - 1]);
+  const aiKeys = ['latar', 'dasar', 'mt', 'wkt', 'keg', 'hasil', 'kes', 'tl', 'penutup'];
+  ok(await p.evaluate(ks => ks.every(k => $('#ai_p_' + k) && $(`[data-act="aiGen"][data-k="${k}"][data-m="baru"]`) && $(`[data-act="aiGen"][data-k="${k}"][data-m="revisi"]`)), aiKeys), 'Laporan: 9 bagian (termasuk Dasar Hukum) masing-masing punya kotak prompt + tombol Buat/Revisi');
+  ok(await p.evaluate(() => !$('#ai_model') && /bawaan server/.test($('.aibar').textContent)), 'Laporan: tanpa model di panel admin → "Model: bawaan server"');
+  await p.screenshot({path:OUT + '/ai-lap-desktop.png', fullPage:false});
+  await p.fill('#l_latar', 'Latar buatan tangan'); await p.fill('#ai_p_latar', 'Tekankan koordinasi pembangunan'); await p.fill('#l_kes', 'Kesimpulan tidak boleh berubah');
+  await p.click('[data-act="aiGen"][data-k="latar"][data-m="baru"]');
+  ok(await until(p, () => $('#l_latar').value.startsWith('Hasil AI latar'), null, 8000), 'Prompt per bagian: tombol Buat mengisi kolom Latar Belakang');
+  const aiG1 = await p.evaluate(() => ({v:$('#l_latar').value, ro:$('#l_latar').readOnly, undo:!$('[data-act="aiUndo"][data-k="latar"]').hidden, st:$('#ai_s_latar').textContent, kes:$('#l_kes').value, off:[...$$('[data-act="aiGen"][data-k="latar"]')].some(x => x.disabled)}));
+  ok(/arahan: Tekankan koordinasi pembangunan/.test(aiG1.v) && /model: server/.test(aiG1.v) && !aiG1.ro && aiG1.undo && /Selesai/.test(aiG1.st) && aiG1.kes === 'Kesimpulan tidak boleh berubah' && !aiG1.off, 'Hasil masuk ke kolom (bisa diedit), bagian lain tidak berubah, tombol Urungkan muncul', JSON.stringify(aiG1));
+  const aiR1 = await aiLast();
+  ok(aiR1.kind === 'bagian' && aiR1.sec === 'latar' && aiR1.mode === 'baru' && aiR1.prompt === 'Tekankan koordinasi pembangunan' && aiR1.model === null && !!aiR1.ctx.tujuan && !JSON.stringify(aiR1).includes('Budi Uji'), 'Permintaan: jenis "bagian", arahan terkirim, tanpa nama pegawai', JSON.stringify(aiR1).slice(0, 260));
+  await p.fill('#l_latar', 'Hasil AI latar diedit manual'); ok(await p.inputValue('#l_latar') === 'Hasil AI latar diedit manual', 'Hasil AI dapat diedit langsung di kolom');
+  await p.click('[data-act="aiUndo"][data-k="latar"]');
+  ok(await p.inputValue('#l_latar') === 'Latar buatan tangan' && await p.evaluate(() => $('[data-act="aiUndo"][data-k="latar"]').hidden), 'Urungkan: isi sebelum hasil AI kembali & tombol tersembunyi');
+  await p.fill('#l_mt', ''); await p.click('[data-act="aiGen"][data-k="mt"][data-m="revisi"]'); await sleep(250);
+  ok((await toasts(p)).some(t => /masih kosong/.test(t)), 'Revisi pada kolom kosong ditolak dengan pesan');
+  await p.fill('#l_mt', 'Maksud awal yang akan direvisi'); await p.click('[data-act="aiGen"][data-k="mt"][data-m="revisi"]'); await sleep(250);
+  ok((await toasts(p)).some(t => /arahan revisi/.test(t)), 'Revisi tanpa arahan ditolak dengan pesan');
+  await p.fill('#ai_p_mt', 'persingkat'); await p.click('[data-act="aiGen"][data-k="mt"][data-m="revisi"]');
+  ok(await until(p, () => $('#l_mt').value.includes('(revisi dari: Maksud awal yang a'), null, 8000), 'Revisi: teks lama dikirim dan diganti hasil revisi');
+  const aiR2 = await aiLast(); ok(aiR2.mode === 'revisi' && aiR2.cur === 'Maksud awal yang akan direvisi' && aiR2.prompt === 'persingkat', 'Permintaan revisi memuat teks saat ini + arahan', JSON.stringify(aiR2).slice(0, 200));
+  await p.fill('#ai_p_penutup', 'nada singkat'); await p.press('#ai_p_penutup', 'Enter');
+  ok(await until(p, () => $('#l_penutup').value.includes('arahan: nada singkat'), null, 8000), 'Enter di kotak prompt = Buat');
+  await p.fill('#ai_p_dasar', 'UU 23/2014 dan Permendagri 77/2020'); await p.click('[data-act="aiGen"][data-k="dasar"][data-m="baru"]');
+  ok(await until(p, () => $('#l_dasar').value.startsWith('Hasil AI dasar'), null, 8000) && /Periksa nomor, tahun, dan judul peraturan/.test(await p.textContent('#ai_s_dasar')), 'Dasar Hukum dapat dibuat dari prompt + pengingat memeriksa peraturan');
+  await p.fill('#ai_p_hasil', 'rapat menyepakati percepatan'); await p.fill('#ai_p_tl', 'rapat evaluasi bulanan'); await p.click('[data-act="aiLap"]');
+  ok(await until(p, () => !$('[data-act="aiLap"]').disabled, null, 8000), 'Buat Semua Bagian selesai'); const aiR3 = await aiLast();
+  ok(aiR3.kind === 'laporan' && aiR3.ctx.hints && aiR3.ctx.hints.tl === 'rapat evaluasi bulanan' && !aiR3.ctx.hints.hasil, 'Buat Semua Bagian: arahan per bagian ikut dikirim sebagai hints');
+
+  /* prompt tersimpan bersama laporan & bertahan setelah muat ulang (laporan SPPD #1 dipulihkan sesudahnya) */
+  const aiRepBak = await p.evaluate(() => structuredClone(D.rep.find(x => x.sppdId === D.sppd[0].id)));   // cadangan di sisi Node (variabel halaman hilang saat reload)
+  await p.click('[data-act="saveLap"][data-f="0"]'); await sleep(700);
+  const aiSv = await p.evaluate(() => { const r = D.rep.find(x => x.sppdId === D.sppd[0].id); return r && {ap:r.ap, dasar:r.dasar}; });
+  ok(aiSv && aiSv.ap.latar === 'Tekankan koordinasi pembangunan' && aiSv.ap.mt === 'persingkat' && aiSv.ap.dasar === 'UU 23/2014 dan Permendagri 77/2020' && aiSv.ap.penutup === 'nada singkat' && /^Hasil AI dasar/.test(aiSv.dasar), 'Simpan: prompt tiap bagian ikut tersimpan di laporan', JSON.stringify(aiSv).slice(0, 220));
+  await p.reload(); await p.waitForSelector('#app:not([hidden])', {timeout:30000}); await sleep(400); await aiHook();
+  await p.evaluate(() => { ST.lap.id = D.sppd[0].id; location.hash = 'lap'; render(); }); await p.waitForSelector('#ai_p_latar');
+  ok(await p.evaluate(() => $('#ai_p_latar').value === 'Tekankan koordinasi pembangunan' && $('#ai_p_dasar').value === 'UU 23/2014 dan Permendagri 77/2020'), 'Setelah muat ulang: prompt tiap bagian muncul lagi di kotaknya');
+  await p.evaluate(b => { const r = D.rep.find(x => x.sppdId === D.sppd[0].id); for (const k of Object.keys(r)) delete r[k]; Object.assign(r, b); save('rep'); }, aiRepBak); await sleep(300);
+
+  /* ---- Pengaturan → Model AI (Administrator) ---- */
+  await p.evaluate(() => { location.hash = 'peng'; }); await sleep(300); await p.click('[data-act="tab"][data-k="peng"][data-v="ai"]'); await sleep(300);
+  ok(await p.evaluate(() => $$('.seg').some(x => /Model AI/.test(x.textContent)) && !!$('[data-act="aiAdd"]') && /Keamanan kunci API/.test($('#main').textContent)), 'Pengaturan: tab "Model AI" tersedia + catatan keamanan kunci');
+  ok(await p.evaluate(() => { location.hash = 'ai'; return true; }) && (await sleep(300), await p.evaluate(() => RT === 'peng' && ST.peng.t === 'ai')), 'Alamat #ai membuka Pengaturan → Model AI');
+  await p.screenshot({path:OUT + '/ai-pengaturan-kosong.png'});
+  await p.click('[data-act="aiAdd"]'); await p.waitForSelector('#ai_n'); await sleep(450); await p.fill('#ai_n', 'Claude Haiku (uji)'); await p.selectOption('#ai_pv', 'anthropic');
+  ok(await p.inputValue('#ai_m') === 'claude-haiku-5-5' && await p.evaluate(() => $('#ai_bw').hidden), 'Tambah model: ID model terisi sesuai penyedia, kolom Base URL tersembunyi');
+  await p.fill('#ai_k', 'sk-ant-RAHASIA-12345678'); await p.screenshot({path:OUT + '/ai-model-form.png'}); await p.click('#mok'); await sleep(600);
+  const aiM1 = await p.evaluate(() => { const A = D.cfg.ai; return {n:A.models.length, m:A.models[0], def:A.def, id:A.models[0].id, txt:$('#main').textContent, html:document.documentElement.innerHTML}; });
+  ok(aiM1.n === 1 && aiM1.m.prov === 'anthropic' && aiM1.m.model === 'claude-haiku-5-5' && aiM1.m.key === 'sk-ant-RAHASIA-12345678' && aiM1.def === aiM1.id && aiM1.m.on === true, 'Model pertama tersimpan di cfg.ai dan otomatis menjadi bawaan', JSON.stringify({...aiM1.m, key:'***'}));
+  ok(/••••5678/.test(aiM1.txt) && !aiM1.html.includes('RAHASIA-12345678'), 'Daftar hanya menampilkan 4 digit terakhir kunci; kunci utuh tidak ada di DOM');
+  await p.click('[data-act="aiAdd"]'); await p.waitForSelector('#ai_n'); await sleep(450); await p.fill('#ai_n', 'LLM Kustom'); await p.selectOption('#ai_pv', 'custom');
+  ok(await p.evaluate(() => !$('#ai_bw').hidden && $('#ai_m').value === ''), 'Penyedia kustom: Base URL muncul, ID model dikosongkan');
+  await p.fill('#ai_m', 'qwen-2.5'); await p.fill('#ai_b', 'http://tidak-aman.contoh.id/v1'); await p.click('#mok'); await sleep(300);
+  ok((await toasts(p)).some(t => /https:\/\//.test(t)) && await p.evaluate(() => D.cfg.ai.models.length === 1), 'Penyedia kustom: Base URL tanpa https ditolak dan tidak tersimpan');
+  await p.fill('#ai_b', 'https://api.contoh.id/v1/'); await p.fill('#ai_n', 'Claude Haiku (uji)'); await p.click('#mok'); await sleep(300);
+  ok((await toasts(p)).some(t => /sudah dipakai/.test(t)), 'Nama tampilan kembar ditolak'); await p.fill('#ai_n', 'LLM Kustom'); await p.click('#mok'); await sleep(500);
+  const aiM2 = await p.evaluate(() => ({n:D.cfg.ai.models.length, m:D.cfg.ai.models[1], def:D.cfg.ai.def, first:D.cfg.ai.models[0].id}));
+  ok(aiM2.n === 2 && aiM2.m.base === 'https://api.contoh.id/v1' && aiM2.m.key === '' && aiM2.def === aiM2.first, 'Model kedua (kustom, tanpa kunci → kunci server) tersimpan; bawaan tidak berubah', JSON.stringify(aiM2.m));
+  await p.screenshot({path:OUT + '/ai-pengaturan-daftar.png'});
+  await p.click(`[data-act="aiTest"][data-id="${aiM1.id}"]`); await sleep(900);
+  const aiRq = await aiLast(); ok((await toasts(p)).some(t => /Claude Haiku \(uji\): terhubung/.test(t)) && aiRq.kind === 'tes' && aiRq.model.prov === 'anthropic' && aiRq.model.key === 'sk-ant-RAHASIA-12345678', 'Uji koneksi: berhasil, mengirim konfigurasi model yang dipilih', JSON.stringify(aiRq).replace(/RAHASIA-\d+/, '***'));
+  await p.click(`[data-act="aiEdit"][data-id="${aiM1.id}"]`); await p.waitForSelector('#ai_n'); await sleep(450);
+  ok(await p.evaluate(() => $('#ai_k').value === '' && /5678/.test($('#ai_k').placeholder) && !document.body.innerHTML.includes('RAHASIA-12345678')), 'Ubah: kolom kunci kosong (hanya penanda 4 digit terakhir), kunci utuh tidak ditampilkan');
+  await p.fill('#ai_n', 'Claude Haiku v2'); await p.click('#mok'); await sleep(400);
+  ok(await p.evaluate(() => D.cfg.ai.models[0].nama === 'Claude Haiku v2' && D.cfg.ai.models[0].key === 'sk-ant-RAHASIA-12345678'), 'Ubah: kunci dikosongkan di formulir → kunci lama dipertahankan');
+  await p.reload(); await p.waitForSelector('#app:not([hidden])', {timeout:30000}); await sleep(400); await aiHook();
+  ok(await p.evaluate(() => D.cfg.ai && D.cfg.ai.models.length === 2 && D.cfg.ai.models[0].key === 'sk-ant-RAHASIA-12345678' && D.cfg.ai.def === D.cfg.ai.models[0].id), 'Model AI bertahan setelah muat ulang (tersimpan terenkripsi)');
+  const aiBk = await p.evaluate(() => structuredClone(D.cfg)); await p.evaluate(() => { location.hash = 'peng'; }); await sleep(200); await p.click('[data-act="tab"][data-k="peng"][data-v="ins"]'); await sleep(200);
+  await p.click('[data-act="resetCfg"]'); await p.waitForSelector('.ov.ask [data-r="1"]'); await p.click('.ov.ask [data-r="1"]'); await sleep(500);
+  ok(await p.evaluate(() => D.cfg.ai && D.cfg.ai.models.length === 2), 'Reset Identitas tidak menghapus model AI maupun kuncinya'); await p.evaluate(b => { D.cfg = b; save('cfg'); }, aiBk); await sleep(300);
+
+  /* ---- Backup & restore tidak membocorkan / menghilangkan kunci API ---- */
+  ok(await p.evaluate(() => { const plain = JSON.stringify(bakData(true)), full = JSON.stringify(bakData()), j = JSON.parse(plain).data.cfg.ai; return !plain.includes('RAHASIA-12345678') && full.includes('RAHASIA-12345678') && j.models.length === 2 && j.models.every(m => m.key === ''); }), 'Backup biasa (tanpa enkripsi): kunci API tidak ikut; data terenkripsi/di aplikasi tetap lengkap');
+  ok(await p.evaluate(() => { const cur = {models:[{id:'a', key:'K-A'}, {id:'b', key:'K-B'}], def:'a'}, n1 = {ai:{models:[{id:'a', key:''}, {id:'c', key:''}, {id:'b', key:'K-BARU'}], def:'a'}}, n2 = {}; aiMergeRestore(n1, cur); aiMergeRestore(n2, cur); aiMergeRestore(null, cur); aiMergeRestore({ai:{models:[]}}, null); return n1.ai.models[0].key === 'K-A' && n1.ai.models[1].key === '' && n1.ai.models[2].key === 'K-BARU' && n2.ai === cur; }), 'Restore: kunci kosong di backup diisi dari model yang sama; backup tanpa model AI mempertahankan yang ada');
+  const aiBak = await p.evaluate(() => JSON.stringify(bakData(true))), aiBefore = await p.evaluate(() => JSON.stringify({s:D.sppd.length, e:D.emp.length, r:D.rep.length, a:D.cfg.ai.models.map(m => [m.id, m.nama, m.key])}));
+  await p.evaluate(() => { location.hash = 'akses'; }); await sleep(300);
+  await p.evaluate(() => { $('#fjson').value = ''; }); await p.setInputFiles('#fjson', {name:'backup_uji.json', mimeType:'application/json', buffer:Buffer.from(aiBak)});
+  await p.waitForSelector('.ov.ask [data-r="1"]'); await p.click('.ov.ask [data-r="1"]'); await p.waitForSelector('#ra_p'); await sleep(450); await p.fill('#ra_p', PW); await p.click('#mok');
+  ok(await until(p, () => /Restore berhasil/.test([...document.querySelectorAll('#toast .tst')].map(x => x.textContent).join(' ')), null, 15000), 'Restore dari Backup biasa lewat berkas: berhasil');
+  ok(await p.evaluate(b => JSON.stringify({s:D.sppd.length, e:D.emp.length, r:D.rep.length, a:D.cfg.ai.models.map(m => [m.id, m.nama, m.key])}) === b, aiBefore), 'Setelah restore: data tidak berubah dan kunci API model tetap utuh (tidak terhapus oleh backup tanpa kunci)', aiBefore.replace(/RAHASIA-\d+/, '***').slice(0, 160));
+  await p.evaluate(() => { location.hash = 'lap'; }); await sleep(200);
+
+  /* ---- Laporan memakai model dari panel admin ---- */
+  await p.evaluate(() => { ST.lap.id = D.sppd[0].id; location.hash = 'lap'; render(); }); await p.waitForSelector('#ai_model');
+  ok(await p.evaluate(() => { const o = [...$('#ai_model').options]; return o.length === 2 && o[0].textContent === 'Claude Haiku v2' && o[0].selected; }), 'Laporan: pilihan model memuat model aktif, bawaan terpilih');
+  await p.fill('#ai_p_kes', 'uji model'); await p.click('[data-act="aiGen"][data-k="kes"][data-m="baru"]'); await until(p, () => /Hasil AI kes/.test($('#l_kes').value), null, 8000);
+  const aiRm1 = await aiLast(); ok(/model: claude-haiku-5-5/.test(await p.inputValue('#l_kes')) && aiRm1.model.prov === 'anthropic' && aiRm1.model.key === 'sk-ant-RAHASIA-12345678', 'Bagian dibuat dengan model bawaan dari panel admin (penyedia, ID, kunci terkirim ke server)');
+  ok(await p.evaluate(() => !document.documentElement.innerHTML.includes('RAHASIA-12345678')), 'Halaman Laporan tidak menampilkan kunci API');
+  await p.selectOption('#ai_model', await p.evaluate(() => D.cfg.ai.models[1].id)); await p.fill('#ai_p_tl', 'uji model dua'); await p.click('[data-act="aiGen"][data-k="tl"][data-m="baru"]'); await until(p, () => /Hasil AI tl/.test($('#l_tl').value), null, 8000);
+  const aiRm2 = await aiLast(); ok(/model: qwen-2.5/.test(await p.inputValue('#l_tl')) && aiRm2.model.prov === 'custom' && aiRm2.model.base === 'https://api.contoh.id/v1', 'Mengganti model di halaman Laporan dipakai untuk permintaan berikutnya (penyedia kustom + Base URL)');
+  await p.screenshot({path:OUT + '/ai-lap-model.png'});
+  await p.evaluate(() => { location.hash = 'peng'; }); await sleep(200); await p.click('[data-act="tab"][data-k="peng"][data-v="ai"]'); await sleep(200);
+  await p.click(`[data-act="aiDef"][data-id="${aiM2.m.id}"]`); await sleep(300);
+  ok(await p.evaluate(id => D.cfg.ai.def === id && /Bawaan/.test([...$$('#main tbody tr, #main .tr, #main tr')].find(r => /LLM Kustom/.test(r.textContent))?.textContent || ''), aiM2.m.id), 'Jadikan bawaan: model kedua bertanda "Bawaan"');
+  await p.evaluate(() => { ST.lap.model = ''; ST.lap.id = D.sppd[0].id; location.hash = 'lap'; render(); }); await p.waitForSelector('#ai_model');
+  ok(await p.evaluate(() => { const o = $('#ai_model'); return o.options[o.selectedIndex].textContent === 'LLM Kustom'; }), 'Laporan: model bawaan baru terpilih otomatis');
+  await p.evaluate(() => { location.hash = 'peng'; }); await sleep(200); await p.click('[data-act="tab"][data-k="peng"][data-v="ai"]'); await sleep(200);
+  await p.click(`[data-act="aiEdit"][data-id="${aiM2.m.id}"]`); await p.waitForSelector('#ai_n'); await sleep(450); await p.selectOption('#ai_on', '0'); await p.click('#mok'); await sleep(400);
+  ok(await p.evaluate(id => D.cfg.ai.models[1].on === false && D.cfg.ai.def === id && /Nonaktif/.test($('#main').textContent), aiM1.id), 'Model dinonaktifkan (tampil "Nonaktif"); bawaan pindah ke model aktif lain');
+  await p.evaluate(() => { ST.lap.model = ''; ST.lap.id = D.sppd[0].id; location.hash = 'lap'; render(); }); await p.waitForSelector('#ai_model');
+  ok(await p.evaluate(() => $('#ai_model').options.length === 1), 'Model nonaktif tidak muncul di pilihan Laporan');
+  await p.evaluate(() => { location.hash = 'peng'; }); await sleep(200); await p.click('[data-act="tab"][data-k="peng"][data-v="ai"]'); await sleep(200);
+  await p.click(`[data-act="aiEdit"][data-id="${aiM1.id}"]`); await p.waitForSelector('#ai_n'); await sleep(450); await p.selectOption('#ai_dk', '1'); await p.click('#mok'); await sleep(400);
+  ok(await p.evaluate(() => D.cfg.ai.models[0].key === '' && /kunci server/.test($('#main').textContent)), 'Ubah: "Hapus — pakai kunci server" mengosongkan kunci tersimpan');
+  for (const id of [aiM2.m.id, aiM1.id]) { await p.click(`[data-act="aiDel"][data-id="${id}"]`); await p.waitForSelector('.ov.ask [data-r="1"]'); await p.click('.ov.ask [data-r="1"]'); await sleep(350); }
+  ok(await p.evaluate(() => D.cfg.ai.models.length === 0 && D.cfg.ai.def === ''), 'Hapus model (dengan konfirmasi) → daftar kosong, bawaan dikosongkan');
+  ok(await p.evaluate(() => ({a:PERM.aiAdd, e:PERM.aiEdit, t:PERM.aiTest, d:PERM.aiDel, g:PERM.aiGen, tab:TABOK.peng.includes('ai'), pg:PG.operator.includes('peng') || PG.viewer.includes('peng') || PG.kepala.includes('peng')})).then(x => x.a === 'a' && x.e === 'a' && x.t === 'a' && x.d === 'a' && x.g === 'w' && x.tab && !x.pg), 'Hak akses: kelola model hanya Administrator; membuat bagian laporan operator ke atas');
+  ok(await p.evaluate(() => { const k = 'sk-x-12345678'; const c = CLEAN.cfg({ai:{models:[{id:'abcd1234', nama:'A', prov:'bukan-penyedia', model:'m', key:' sk x 123 ', base:'javascript:alert(1)', temp:9, on:true}, {nama:'', model:'x'}, {nama:'B', prov:'openai', model:''}], def:'tidak-ada'}}); const m = c.ai.models[0]; return c.ai.models.length === 1 && m.prov === 'gemini' && m.key === 'skx123' && m.base === '' && m.temp === 1 && c.ai.def === '' && JSON.stringify(CLEAN.rep([{ap:{latar:'a', hack:'x', __proto__:{x:1}}}])[0].ap) === '{"latar":"a"}'; }), 'Pembersih data: penyedia/Base URL/temperature tak valid dinormalkan, bagian tak dikenal di prompt dibuang');
+  ok(!p.errs.length, 'Fitur AI v1.4: tidak ada error konsol (CSP ketat)', p.errs.join(' | '));
+  await aiStBack(); await p.evaluate(() => { location.hash = 'lap'; render(); }); await sleep(300);
   /* v1.2.7: akun Pimpinan, persetujuan & tanda tangan elektronik; penandaan manual laporan */
   const ap0 = await p.evaluate(async () => {
     const c = document.createElement('canvas'); c.width = 300; c.height = 120; const g = c.getContext('2d'); g.strokeStyle = '#123'; g.lineWidth = 6; g.beginPath(); g.moveTo(10, 90); g.bezierCurveTo(80, 0, 150, 160, 290, 30); g.stroke();
@@ -117,7 +235,7 @@ fs.mkdirSync(OUT, {recursive:true});
   await p.evaluate(() => { location.hash = 'cetak'; render(); });
   const nTotal = await p.evaluate(() => D.sppd.length);
   const prevV = await p.evaluate(() => location.hash.slice(1).split('?')[0] || 'cetak');
-  await p.evaluate(() => go('form')); await p.waitForSelector('#s_no');
+  await p.evaluate(() => go('form')); await p.waitForSelector('#s_no'); await sleep(300);   // dialog memindahkan fokus ke kolom pertama ±60 ms setelah terbuka
   await p.selectOption('#s_emp', {index:1}); await p.fill('#s_maksud', 'Uji nomor kosong'); await p.fill('#s_tujuan', 'Bau-Bau'); await p.fill('#s_tb', '2026-03-02'); await p.fill('#s_tk', '2026-03-03');
   await p.click('#mok'); await sleep(600);
   const blk = await p.evaluate(() => { const x = D.sppd[D.sppd.length - 1]; return {t:document.querySelector('.toast, #toast, [role=status]')?.textContent, m:!!document.querySelector('#mok'), n:D.sppd.length, no:x.no, tgl:x.tgl, spd:dSPPD(x).length > 100, list:1}; });

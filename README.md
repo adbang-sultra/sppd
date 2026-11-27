@@ -1,4 +1,4 @@
-# SIM Pegawai & SPPD — v1.3.5
+# SIM Pegawai & SPPD — v1.4.0
 
 Aplikasi statis (tanpa server). Deploy ke Vercel: `vercel --prod` di folder ini, atau unggah ke GitHub → Import Project (Framework: **Other**, tanpa build command).
 Harus dibuka lewat **HTTPS** (atau localhost) karena memakai Web Crypto.
@@ -18,6 +18,7 @@ Harus dibuka lewat **HTTPS** (atau localhost) karena memakai Web Crypto.
 | `js/icons.js` | set ikon SVG (tambah ikon: `ICONS.nama='<path …/>'`) |
 | `js/fx.js` | efek latar interaktif |
 | `js/app.js` · `js/report.js` | halaman & laporan |
+| `js/ai.js` · `api/ai.js` | **Asisten AI** (v1.4.0): model AI di Pengaturan + prompt per bagian laporan (browser) · fungsi server Vercel yang memanggil penyedia AI |
 | `js/docs.js` · `js/docx-export.js` | kop surat, SPT/SPD/Lampiran, ekspor .docx (`js/vendor/docx.iife.js`, lisensi MIT) |
 | `js/ui.js` | menu Tampilan & Tema · `js/auth.js` login, peran, sesi |
 | `assets/` | `logo.svg`, `bg.svg`, font |
@@ -103,7 +104,7 @@ Tema bisa diekspor/impor sebagai file JSON. Alternatif: ganti file `assets/logo.
 4. Tidak ada langkah lain: akun & kata sandi tetap, data lokal dipindah ke IndexedDB otomatis, laporan lama dipindah ke format baru saat laporan itu diubah.
 
 ## Pengujian
-`tests/` berisi 69 pemeriksaan otomatis (mode lokal, mode cloud terhadap PostgreSQL asli, dan migrasi dari v1.1). Cara menjalankan ada di `tests/README.md`. Yang **belum** diuji: project Supabase sungguhan (yang diuji PostgreSQL 16 lokal + peniru PostgREST) dan perangkat fisik.
+`tests/` berisi pemeriksaan otomatis: antarmuka mode lokal (`run-local.js`, termasuk blok **[AI-1.4]** untuk Model AI & prompt per bagian), fungsi server AI tanpa browser (`run-ai.js`, 59 pemeriksaan), mode cloud terhadap PostgreSQL asli (`run-cloud.js`) dan migrasi dari v1.1 (`run-migrasi.js`). Cara menjalankan ada di `tests/README.md`. Yang **belum** diuji: penyedia AI sungguhan (yang diuji memakai balasan tiruan — jalankan *Uji koneksi* di Pengaturan → Model AI setelah deploy), project Supabase sungguhan (yang diuji PostgreSQL 16 lokal + peniru PostgREST; `run-cloud.js` belum dijalankan ulang setelah v1.4.0), dan perangkat fisik.
 
 ## Pembaruan dari versi sebelum enkripsi
 Data lama otomatis dienkripsi saat **Administrator masuk pertama kali**. Akun Operator/Pembaca lama tampil "Perlu atur ulang sandi" → Admin buka **Pengguna & Peran → Ubah**, isi kata sandi baru.
@@ -115,19 +116,29 @@ Bila menambah kelas Tailwind baru di JS: `npx tailwindcss@3.4.17 -i in.css -o cs
 
 ## Fitur v1.2.7
 
-### Asisten AI untuk Laporan
-Menu **Laporan Perjalanan** → isi *Hasil yang Dicapai* → klik **Buat Isi Laporan dengan AI**. AI mengisi Latar Belakang, Maksud dan Tujuan, Kegiatan, Kesimpulan, Saran, dan Penutup; semuanya bisa diedit sebelum disimpan (centang *Timpa isian* untuk mengganti bagian yang sudah terisi). Dasar Hukum tidak dibuat AI.
-Fungsi server: `api/ai.js` (Vercel Serverless). Atur **Environment Variables** di Vercel, lalu *Redeploy*:
+### Asisten AI untuk Laporan (diperbarui di v1.4.0)
+
+**1. Tambah model AI di panel admin.** Menu **Pengaturan → tab Model AI** (Administrator): **Tambah Model** → isi *Nama tampilan*, *Penyedia* (Google Gemini, Anthropic/Claude, OpenAI, Groq, OpenRouter, atau *Kompatibel OpenAI* dengan Base URL sendiri), *ID model* (salin persis dari dokumentasi penyedia) dan *Kunci API* → **Simpan**. Ikon petir = **Uji koneksi**, bintang = jadikan **Bawaan**; model bisa dinonaktifkan atau dihapus. Mengganti/menambah model tidak lagi memerlukan ubah variabel lingkungan maupun deploy ulang.
+
+**2. Prompt per bagian laporan.** Menu **Laporan Perjalanan**: setiap bagian — Latar Belakang, Dasar Hukum, Maksud dan Tujuan, Waktu Pelaksanaan, Kegiatan, Hasil yang Dicapai, Kesimpulan, Saran, Penutup — punya kotak **arahan (prompt)** sendiri.
+- Tulis arahan (boleh dikosongkan; AI lalu menyusun dari data perjalanan) → **Buat** (atau tekan Enter) → hasil masuk ke kolom bagian itu dan **bisa diedit** seperti isian biasa.
+- **Revisi** memperbaiki teks yang sudah ada sesuai arahan (mis. "persingkat", "tambahkan koordinasi dengan Bappeda"); tombol **↻** mengembalikan isi sebelum hasil AI.
+- Pilihan **Model AI** ada di kotak *Asisten AI* di atas form; **Buat Semua Bagian** (dari v1.2.7) tetap ada dan kini ikut memakai arahan per bagian bila diisi.
+- Arahan tiap bagian ikut **tersimpan bersama laporan** (tombol Simpan) dan muncul lagi saat laporan dibuka.
+- **Dasar Hukum**: AI hanya menuliskan peraturan yang Anda sebut di arahan (atau saran peraturan nasional yang ia yakini ada) dan dilarang mengarang nomor/tahun/judul. Tetap **periksa semua nomor, tahun, dan judul peraturan** sebelum menyimpan. Surat Tugas dan SPPD sudah otomatis tercantum, tidak perlu ditulis.
+
+**Penyimpanan & keamanan kunci API.** Kunci disimpan **terenkripsi bersama data aplikasi** (bukan di kode/GitHub), hanya Administrator yang bisa melihat/mengubahnya, dan daftar hanya menampilkan 4 digit terakhir. Batas jujur: akun yang bisa masuk memegang kunci data sesuai perannya, sehingga pengguna yang paham teknis pada prinsipnya dapat membaca kunci itu dari browsernya. Karena itu pakai **kunci khusus aplikasi** dengan batas kuota di sisi penyedia. Alternatif yang lebih tertutup: kosongkan kolom kunci di panel admin dan simpan kunci di server (variabel `AI_API_KEY_<PENYEDIA>` di bawah) — kunci itu tidak pernah sampai ke browser. Browser tidak pernah menghubungi penyedia AI langsung; semua lewat `/api/ai`. Base URL buatan sendiri hanya diterima bila `https://` dengan nama domain publik (alamat IP, localhost, dan jaringan privat ditolak).
+
+Fungsi server: `api/ai.js` (Vercel Serverless). Variabel lingkungan (Vercel → Settings → Environment Variables, lalu *Redeploy*) — **semuanya opsional kecuali salah satu cara otorisasi**:
 
 | Variabel | Keterangan |
 |---|---|
-| `AI_API_KEY` | wajib — kunci API penyedia AI (jangan taruh di `js/config.js`) |
-| `AI_PROVIDER` | `gemini` (bawaan) · `anthropic` · `groq` · `openai` |
-| `AI_MODEL` | nama model (periksa dokumentasi penyedia; bila kosong dipakai nilai bawaan di `api/ai.js`) |
-| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | mode cloud: sesi Admin/Operator diperiksa ke Supabase |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | mode cloud: sesi Admin/Operator diperiksa ke Supabase (Admin/Operator boleh membuat bagian laporan; hanya Admin yang boleh uji koneksi) |
 | `AI_ACCESS_CODE` | mode lokal: kode akses yang diketik pengguna saat pertama memakai fitur AI |
+| `AI_API_KEY_GEMINI` · `_ANTHROPIC` · `_OPENAI` · `_GROQ` · `_OPENROUTER` · `_CUSTOM` | kunci cadangan per penyedia, dipakai bila model di panel admin dibiarkan tanpa kunci |
+| `AI_API_KEY`, `AI_PROVIDER`, `AI_MODEL`, `AI_BASE_URL` | konfigurasi lama (v1.2.7): dipakai bila **belum ada model** di panel admin. `AI_API_KEY` hanya dipakai untuk penyedia `AI_PROVIDER` |
 
-Yang dikirim ke penyedia AI hanya teks maksud, tujuan, tanggal, dan hasil yang diketik; nama/NIP pegawai tidak dikirim. Hasil AI wajib diperiksa manusia.
+Yang dikirim ke penyedia AI hanya data maksud, tujuan, tanggal, serta teks isian laporan dan arahan yang diketik; nama/NIP pegawai tidak dikirim oleh aplikasi (jangan mengetik data pribadi di arahan). Hasil AI wajib diperiksa manusia.
 
 ### Akun Pimpinan (Kepala OPD) & tanda tangan elektronik
 - Admin: **Pengguna & Backup → Tambah/Ubah pengguna** → peran *Pimpinan (Kepala OPD)* → isi **NIP** (dicocokkan dengan penanda tangan SPPD) dan unggah **gambar tanda tangan**.

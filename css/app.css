@@ -392,3 +392,14 @@ input[type=date].in:focus-visible{outline:none}
 .kpf{border:1px dashed var(--bd);border-radius:calc(var(--rad) * .7);padding:.8rem 1rem;display:grid;gap:.5rem}
 .kpf[hidden]{display:none}
 .upl-p.wide{width:9rem;height:5rem}.upl-p.wide img{object-fit:contain;max-width:100%;max-height:100%}
+
+/* v1.4.0 — Asisten AI: kotak arahan (prompt) per bagian laporan & tab Model AI */
+.fsec{display:flex;flex-direction:column;gap:.45rem;min-width:0}
+.aisec{display:flex;flex-direction:column;gap:.25rem}
+.aisec-r{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
+.aisec-r .in{flex:1 1 13rem;min-width:0;width:auto}
+.aisec-r .btn2{min-height:2.35rem;padding:.45rem .8rem;font-size:.8rem}
+.aisec-s{min-height:1.1rem;font-size:.75rem}
+.aibar{align-items:flex-end}
+.ai-model{min-width:12rem}.ai-model .in{width:auto;min-width:12rem}
+.card code,.dlg-b code,.aibox code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.85em;padding:.05rem .3rem;border-radius:.3rem;background:var(--sf3);word-break:break-all}

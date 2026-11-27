@@ -60,29 +60,12 @@ function fotoRender() { const bx = $('#fotoBox'); if (bx) bx.innerHTML = LF.map(
 AFTER.lap = fotoRender;
 act('saveLap', el => {
   const final = el.dataset.f === '1', s = D.sppd.find(x => x.id === ST.lap.id); if (!s) return toast('Pilih SPPD', 'err');
-  const g = k => txt($('#l_' + k).value.trim(), 8000), o = {sppdId:s.id, no:g('no'), latar:g('latar'), dasar:g('dasar'), mt:g('mt'), wkt:g('wkt'), keg:g('keg'), hasil:g('hasil'), kes:g('kes'), tl:g('tl'), penutup:g('penutup'), tgl:okDate(g('tgl')), fcap:g('fcap'), foto:LF.filter(okImg).slice(0, 6)};
+  const g = k => txt($('#l_' + k).value.trim(), 8000), o = {sppdId:s.id, no:g('no'), latar:g('latar'), dasar:g('dasar'), mt:g('mt'), wkt:g('wkt'), keg:g('keg'), hasil:g('hasil'), kes:g('kes'), tl:g('tl'), penutup:g('penutup'), tgl:okDate(g('tgl')), fcap:g('fcap'), ap:aiPrompts(), foto:LF.filter(okImg).slice(0, 6)};
   if (final && (!o.hasil || !o.kes || !o.tgl)) return toast('Untuk status Selesai, isi Hasil yang Dicapai, Kesimpulan, dan Tanggal', 'err');
   o.status = final ? 'selesai' : 'draft'; let r = D.rep.find(x => x.sppdId === s.id); if (r) Object.assign(r, o); else D.rep.push({id:uid(), ts:nextTs(), ...o});
   if (save('rep')) { log('Laporan ' + s.no + ' (' + o.status + ')'); toast('Laporan disimpan'); render(); }
 }, 'w');
-/* ---------- Asisten AI (api/ai.js) ---------- */
-let AIBUSY = false;
-async function aiRun(retry) {
-  if (AIBUSY) return; const s = D.sppd.find(x => x.id === ST.lap.id), el = $('#l_hasil'); if (!s || !el) return;
-  const hasil = el.value.trim(); if (hasil.length < 30) return toast('Isi "Hasil yang Dicapai" dulu (beberapa kalimat), lalu klik Buat Isi Laporan dengan AI', 'err');
-  const st = $('#ai_st'), btn = $('[data-act="aiLap"]'), over = !!$('#ai_over')?.checked; AIBUSY = true; if (btn) btn.disabled = true; if (st) st.textContent = 'AI sedang menyusun… (sekitar 5–20 detik)';
-  const code = (() => { try { return sessionStorage.getItem('sppd_aicode') || ''; } catch { return ''; } })();
-  try {
-    const r = await fetch('/api/ai', {method:'POST', headers:{'Content-Type':'application/json', ...(Cloud.on && Cloud.token ? {Authorization:'Bearer ' + Cloud.token} : {}), ...(code ? {'x-ai-code':code} : {})}, body:JSON.stringify({kind:'laporan', ctx:{instansi:D.cfg.instansi, maksud:maksud1(s), tujuan:s.tujuan, asal:s.asal, tb:dts(s.tb), tk:dts(s.tk), orang:orang(s).length, hasil}})});
-    const j = await r.json().catch(() => ({}));
-    if (r.status === 401 && !retry) { AIBUSY = false; if (btn) btn.disabled = false; if (st) st.textContent = ''; return modal('Kode akses AI', `<p class="muted sm mb-2">${esc(j.error || 'Masukkan kode akses AI dari administrator.')}</p><label class="fld"><span>Kode akses</span><input id="ai_c" type="password" class="in" maxlength="100" autocomplete="off"></label>`, async () => { const c = $('#ai_c').value.trim(); if (!c) return false; try { sessionStorage.setItem('sppd_aicode', c); } catch {} setTimeout(() => aiRun(true), 50); return true; }, false, 'Lanjut'); }
-    if (!r.ok || !j.ok) throw new Error(j.error || 'Layanan AI tidak tersedia (kode ' + r.status + ')');
-    let n = 0; for (const k of ['latar', 'mt', 'keg', 'kes', 'tl', 'penutup']) { const e = $('#l_' + k), v = String(j.data?.[k] || '').trim(); if (e && v && (over || !e.value.trim())) { e.value = v; n++; } }
-    if (st) st.textContent = n ? n + ' bagian terisi — silakan periksa & edit, lalu Simpan.' : 'Semua bagian sudah terisi (centang "Timpa" untuk mengganti).'; toast(n ? 'Isi laporan dibuat AI — periksa dan edit sebelum disimpan' : 'Tidak ada bagian kosong untuk diisi');
-  } catch (e) { if (st) st.textContent = ''; toast(e.message || 'Gagal menghubungi AI', 'err'); }
-  finally { AIBUSY = false; const b2 = $('[data-act="aiLap"]'); if (b2) b2.disabled = false; }
-}
-act('aiLap', () => aiRun(false), 'w');
+/* Asisten AI (model, prompt per bagian, Buat Semua Bagian) → js/ai.js */
 act('delLap', async el => { if (!(await ask('Hapus laporan ini?', 'Hapus'))) return; D.rep = D.rep.filter(r => r.id !== el.dataset.id); save('rep'); log('Menghapus laporan'); LFid = ''; render(); }, 'w');
 act('openLap', el => { ST.lap.id = el.dataset.id; render(); });
 act('lapPrev', el => { ST.cetak = {id:el.dataset.id, v:'lap'}; go('cetak'); });
@@ -90,12 +73,12 @@ onCh('lapSel', el => { ST.lap.id = el.value; render(); });
 
 pages.lap = () => {
   const s = D.sppd.find(x => x.id === ST.lap.id), e = s ? pegOf(s) : {}, r = s && D.rep.find(x => x.sppdId === s.id) || {}, ro = canW() ? '' : 'readonly';
-  if (s && LFid !== s.id) { LF = [...(r.foto || [])]; LFid = s.id; }
-  const ta = (k, l, n = 3, ph = '', v = r[k]) => `<label class="fld"><span>${l}</span><textarea id="l_${k}" rows="${n}" placeholder="${esc(ph)}" class="in" maxlength="8000" ${ro}>${esc(v)}</textarea></label>`, nm = 'Satu baris = satu nomor', nb = 'Satu baris = satu nomor. Awali baris dengan "- " untuk butir (•) di bawah nomor';
+  if (s && LFid !== s.id) { LF = [...(r.foto || [])]; LFid = s.id; AIUNDO.clear(); }
+  const ta = (k, l, n = 3, ph = '', v = r[k]) => { const f = `<label class="fld"><span>${l}</span><textarea id="l_${k}" rows="${n}" placeholder="${esc(ph)}" class="in" maxlength="8000" ${ro}>${esc(v)}</textarea></label>`, S = canW() && AIS.find(x => x.k === k); return S ? `<div class="fsec">${f}${aiBlock(S, (r.ap || {})[k])}</div>` : f; }, nm = 'Satu baris = satu nomor', nb = 'Satu baris = satu nomor. Awali baris dengan "- " untuk butir (•) di bawah nomor';
   return `<div class="card mb-3"><div class="toolbar">${sppdSel('lap', 'lapSel')}${s ? badge(stRep(s.id)) : ''}${s && r.id ? `<span class="apl">Persetujuan pimpinan: ${aprBadge(s, 'lap')}</span><span class="ra wrap">${aprActs(s, 'lap')}</span>` : ''}</div>${s ? `<div class="info mt-3">${I('user')}<span><b>${esc(e.nama)}</b> · NIP ${esc(e.nip)} · ${esc(e.jabatan)}<br>Tujuan: ${esc(s.tujuan)} · ${dts(s.tb)} s/d ${dts(s.tk)}</span></div>
   <div class="fgrid g2 mt-3"><label class="fld"><span>Nomor Laporan</span><input id="l_no" value="${esc(r.no)}" class="in" maxlength="200" ${ro}></label><label class="fld"><span>Tanggal Penyusunan</span><input id="l_tgl" type="date" value="${esc(r.tgl || today())}" class="in" ${ro}></label>
-  ${secH('I. Pendahuluan', 'flag')}${ta('latar', 'A. Latar Belakang', 4)}${ta('dasar', 'B. Dasar Hukum tambahan (Surat Tugas & SPPD otomatis)', 4, nm)}${ta('mt', 'C. Maksud dan Tujuan (kosong = otomatis)', 3)}${ta('wkt', 'D. Waktu Pelaksanaan (kosong = otomatis)', 3)}
-  ${secH('II – V. Isi Laporan', 'clipboard')}${ta('keg', 'II. Kegiatan yang Dilaksanakan (kosong = otomatis)', 4, nb)}${ta('hasil', 'III. Hasil yang Dicapai', 4, nb, r.hasil || [r.h1, r.h2, r.h3].filter(Boolean).join('\n'))}${canW() ? `<div class="col-span-full aibox"><div class="aib-h">${I('sparkles')}<b>Asisten AI</b></div><p class="muted sm">Setelah <b>Hasil yang Dicapai</b> terisi, AI menyusun Latar Belakang, Maksud dan Tujuan, Kegiatan, Kesimpulan, Saran, dan Penutup. Semua hasilnya dapat diedit sebelum disimpan. Periksa kembali isinya — AI bisa keliru. Hanya maksud, tujuan, tanggal, dan teks hasil yang dikirim; nama/NIP pegawai tidak dikirim.</p><div class="stack mt-2">${b('Buat Isi Laporan dengan AI', 'aiLap', {}, 'btn', 'sparkles')}<label class="chk"><input type="checkbox" id="ai_over"><span>Timpa isian yang sudah ada</span></label><span class="muted sm" id="ai_st" role="status"></span></div></div>` : ''}${ta('kes', 'IV.1 Kesimpulan (satu baris = satu butir)', 3, 'Satu baris = satu butir (•)')}${ta('tl', 'IV.2 Saran (satu baris = satu butir)', 3, 'Satu baris = satu butir (•)')}<div class="col-span-full">${ta('penutup', 'V. Penutup (kosong = kalimat baku)', 2)}</div>
+  ${secH('I. Pendahuluan', 'flag')}${canW() ? aiBar() : ''}${ta('latar', 'A. Latar Belakang', 4)}${ta('dasar', 'B. Dasar Hukum tambahan (Surat Tugas & SPPD otomatis)', 4, nm)}${ta('mt', 'C. Maksud dan Tujuan (kosong = otomatis)', 3)}${ta('wkt', 'D. Waktu Pelaksanaan (kosong = otomatis)', 3)}
+  ${secH('II – V. Isi Laporan', 'clipboard')}${ta('keg', 'II. Kegiatan yang Dilaksanakan (kosong = otomatis)', 4, nb)}${ta('hasil', 'III. Hasil yang Dicapai', 4, nb, r.hasil || [r.h1, r.h2, r.h3].filter(Boolean).join('\n'))}${ta('kes', 'IV.1 Kesimpulan (satu baris = satu butir)', 3, 'Satu baris = satu butir (•)')}${ta('tl', 'IV.2 Saran (satu baris = satu butir)', 3, 'Satu baris = satu butir (•)')}<div class="col-span-full">${ta('penutup', 'V. Penutup (kosong = kalimat baku)', 2)}</div>
   ${secH('Dokumentasi Foto', 'image')}<div class="col-span-full">${canW() ? `<label class="btn2 file">${I('upload')}<span>Tambah foto (maks 6)</span><input type="file" accept="image/png,image/jpeg,image/webp" multiple data-ch="addFoto" hidden></label>` : ''}<div id="fotoBox" class="phs mt-2"></div></div><div class="col-span-full">${ta('fcap', 'Keterangan foto (satu baris = satu foto, sesuai urutan; boleh dikosongkan)', 3, 'Koordinasi dengan Bagian Adm. Pembangunan Setda Kab. ...')}</div></div>
   <div class="actions">${canW() ? b('Simpan Draft', 'saveLap', {f:0}, 'btn2', 'edit') + b('Simpan & Selesai', 'saveLap', {f:1}, 'btn', 'check') : ''}${r.id ? b('Pratinjau / PDF', 'lapPrev', {id:s.id}, 'btn2', 'eye') + b('Unduh Word', 'expWord', {id:s.id}, 'btn2', 'word') + (canW() ? b('Hapus', 'delLap', {id:r.id}, 'btnd', 'trash') : '') : ''}</div>` : `<div class="empty-st">${I('file', 'big')}<p>Pilih nomor SPPD untuk mengisi laporan</p></div>`}</div>
   <div class="card">${cardH('Daftar Laporan', 'folder')}${table(['Nomor SPPD', 'Pegawai', 'Tanggal', 'Status', 'Aksi'], D.rep.map(x => { const p = D.sppd.find(q => q.id === x.sppdId) || {}; return [esc(p.no), esc(pegOf(p).nama), dts(x.tgl), badge(x.status === 'selesai' ? 'Selesai' : 'Draft'), iBtn('openLap', {id:x.sppdId}, 'chevr', 'Buka')]; }))}</div>`;

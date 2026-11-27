@@ -46,7 +46,13 @@ http.createServer((q, s) => {
       const j = (c, o) => { s.writeHead(c, {...H, 'Content-Type':'application/json'}); s.end(JSON.stringify(o)); };
       if (q.method !== 'POST') return j(405, {ok:false});
       if (q.headers['x-ai-code'] !== 'kode-uji') return j(401, {ok:false, error:'Tidak berwenang', needCode:true});
-      let c = {}; try { c = JSON.parse(b).ctx || {}; } catch {}
+      let rq = {}; try { rq = JSON.parse(b) || {}; } catch {}
+      const c = rq.ctx || {}, mdl = rq.model && rq.model.model ? rq.model.model : 'server';
+      if (rq.kind === 'tes') return rq.model && rq.model.key === 'kunci-salah' ? j(502, {ok:false, error:'Penyedia AI menolak/gagal merespons: kunci tidak valid — periksa kunci API.'}) : j(200, {ok:true, ms:120, prov:(rq.model || {}).prov || 'server', model:mdl, sample:'OK'});
+      if (rq.kind === 'bagian') {
+        if (rq.mode === 'revisi' && !rq.cur) return j(400, {ok:false, error:'Kolom masih kosong'});
+        return j(200, {ok:true, text:'Hasil AI ' + rq.sec + (rq.mode === 'revisi' ? ' (revisi dari: ' + String(rq.cur).slice(0, 20) + ')' : '') + ' | arahan: ' + (rq.prompt || '-') + ' | model: ' + mdl});
+      }
       if (String(c.hasil || '').length < 30) return j(400, {ok:false, error:'Isi Hasil yang Dicapai terlebih dahulu.'});
       j(200, {ok:true, data:{latar:'Latar AI paragraf satu.\nLatar AI paragraf dua.', mt:'Maksud AI di ' + c.tujuan + '.', keg:'Kegiatan AI satu\n- rincian satu\nKegiatan AI dua', kes:'Kesimpulan AI satu\nKesimpulan AI dua', tl:'Saran AI satu\nSaran AI dua', penutup:'Penutup AI.'}});
     });

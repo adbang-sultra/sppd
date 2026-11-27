@@ -48,11 +48,11 @@ CLEAN.sppd = v => arr(v).map(o => { const r = {id:withId(o), ...pick(o, SF, 1000
   ['stS', 'spdS'].forEach(k => r[k] = o[k] && typeof o[k] === 'object' && (o[k].nama || o[k].jabatan) ? pick(o[k], SGF) : null);
   r.biaya = arr(o.biaya, 40).map(x => ({ur:txt(x.ur, 200), vol:clamp(x.vol, 0, 1e6, 0), sat:txt(x.sat, 30), hrg:clamp(x.hrg, 0, 1e12, 0)})).filter(x => x.ur);
   r.ts = tsOf(o); return r; });
-CLEAN.rep = v => arr(v).map(o => ({id:withId(o), sppdId:okId(o.sppdId) ? o.sppdId : '', status:o.status === 'selesai' ? 'selesai' : 'draft', ...pick(o, RF, 8000), tgl:okDate(o.tgl), foto:(Array.isArray(o.foto) ? o.foto : []).map(okImg).filter(Boolean).slice(0, 6), ts:tsOf(o)}));
+CLEAN.rep = v => arr(v).map(o => ({id:withId(o), sppdId:okId(o.sppdId) ? o.sppdId : '', status:o.status === 'selesai' ? 'selesai' : 'draft', ...pick(o, RF, 8000), tgl:okDate(o.tgl), ap:cleanAP(o.ap), foto:(Array.isArray(o.foto) ? o.foto : []).map(okImg).filter(Boolean).slice(0, 6), ts:tsOf(o)}));
 CLEAN.apr = v => arr(v, 3000).map(o => ({id:withId(o), sppdId:okId(o.sppdId) ? o.sppdId : '', doc:['st', 'spd', 'lap'].includes(o.doc) ? o.doc : 'st', mode:o.mode === 'manual' ? 'manual' : 'ttd', by:okId(o.by) ? o.by : '', nama:txt(o.nama, 120), jab:txt(o.jab, 200), nip:txt(o.nip, 30), at:okDate(o.at), ts:tsOf(o)})).filter(o => o.sppdId);
 CLEAN.log = v => arr(v, 2000).map(o => ({...pick(o, ['t','u','m'], 300), id:withId(o), ts:clamp(o.ts, 0, 1e14, 0)}));
 const CFX = ['kop1','kop2','kop3','kota','ttdLbl','ttdTag','bendahara','nipBend','pangkat'], CFS = ['kopMode','ttdMode'];
-CLEAN.cfg = v => { v = v && typeof v === 'object' ? v : {}; const r = {...structuredClone(DEF.cfg)}; [...CF.map(c => c[0]), ...CFX].forEach(k => { if (own(v, k)) r[k] = txt(v[k], 300); }); if (own(v, 'ttdNote')) r.ttdNote = txt(v.ttdNote, 2000); if (v.kopMode === 'gambar' || v.kopMode === 'teks') r.kopMode = v.kopMode; if (v.ttdMode === 'tte' || v.ttdMode === 'basah') r.ttdMode = v.ttdMode; r.logo = okImg(v.logo); r.kopImg = okImg(v.kopImg); r.signers = arr(v.signers, 20).map(x => pick(x, SGF)).filter(x => x.nama || x.jabatan); r.kopd = arr(v.kopd, 50).map(x => pick(x, SGF)).filter(x => x.nama || x.jabatan); if (v.ui && typeof v.ui === 'object') r.ui = cleanUI(v.ui); return r; };
+CLEAN.cfg = v => { v = v && typeof v === 'object' ? v : {}; const r = {...structuredClone(DEF.cfg)}; [...CF.map(c => c[0]), ...CFX].forEach(k => { if (own(v, k)) r[k] = txt(v[k], 300); }); if (own(v, 'ttdNote')) r.ttdNote = txt(v.ttdNote, 2000); if (v.kopMode === 'gambar' || v.kopMode === 'teks') r.kopMode = v.kopMode; if (v.ttdMode === 'tte' || v.ttdMode === 'basah') r.ttdMode = v.ttdMode; r.logo = okImg(v.logo); r.kopImg = okImg(v.kopImg); r.signers = arr(v.signers, 20).map(x => pick(x, SGF)).filter(x => x.nama || x.jabatan); r.kopd = arr(v.kopd, 50).map(x => pick(x, SGF)).filter(x => x.nama || x.jabatan); if (v.ui && typeof v.ui === 'object') r.ui = cleanUI(v.ui); if (v.ai && typeof v.ai === 'object') r.ai = cleanAI(v.ai); return r; };
 
 /* ---------- Status & filter ---------- */
 const ST = {emp:{q:'', pg:1, jk:'', gol:'', jab:''}, prog:{q:'', pg:1, ta:''}, sppd:{q:'', pg:1, st:'', a:'', b:'', e:''}, rekap:{a:'', b:'', e:'', t:''}, cetak:{id:'', v:'all'}, lap:{id:''}, apr:{q:'', pg:1, st:''}};
@@ -331,7 +331,7 @@ act('kopMode', el => { readCfg(); D.cfg.kopMode = el.dataset.k === 'gambar' ? 'g
 act('logoDef', () => { readCfg(); D.cfg.logo = ''; rerenderKeep(); }, 'a');
 onCh('kopImg', async el => { const f = el.files[0]; if (!f) return; try { readCfg(); D.cfg.kopImg = await reencode(f, 2200, 'image/png'); if (D.cfg.kopImg.length > 9e5) D.cfg.kopImg = await reencode(f, 1800, 'image/jpeg', .9); rerenderKeep(); toast('Kop dimuat — klik Simpan Pengaturan'); } catch (e) { toast(e.message, 'err'); } }, 'a');
 act('saveCfg', () => { readCfg(); Object.keys(SGL).forEach(l => D.cfg[l] = (D.cfg[l] || []).filter(x => x.nama || x.jabatan)); if (save('cfg')) { log('Memperbarui pengaturan instansi'); toast('Pengaturan disimpan'); render(); } }, 'a');
-act('resetCfg', async () => { if (!(await ask('Reset identitas instansi ke bawaan? Data pegawai dan SPPD tidak dihapus.', 'Reset'))) return; const ui = D.cfg.ui; D.cfg = structuredClone(DEF.cfg); if (ui) D.cfg.ui = ui; save('cfg'); log('Reset identitas instansi'); render(); }, 'a');
+act('resetCfg', async () => { if (!(await ask('Reset identitas instansi ke bawaan? Data pegawai dan SPPD tidak dihapus.', 'Reset'))) return; const ui = D.cfg.ui, ai = D.cfg.ai; D.cfg = structuredClone(DEF.cfg); if (ui) D.cfg.ui = ui; if (ai) D.cfg.ai = ai; save('cfg'); log('Reset identitas instansi'); render(); }, 'a');
 onCh('cfgLogo', async el => { const f = el.files[0]; if (!f) return; try { readCfg(); D.cfg.logo = await reencode(f, 400, 'image/png'); if (D.cfg.logo.length > 4e5) D.cfg.logo = await reencode(f, 300, 'image/jpeg', .85); rerenderKeep(); toast('Logo dimuat — klik Simpan Pengaturan'); } catch (e) { toast(e.message, 'err'); } }, 'a');
 
 /* ---------- Backup & restore ---------- */
@@ -340,8 +340,8 @@ pages.bak = () => `<div class="dgrid g2 bk">${cloudCard()}<div class="card">${ca
   <div class="stack">${b('Backup Terenkripsi (disarankan)', 'bakEnc', {}, 'btn', 'lock')}${b('Backup JSON biasa', 'bakJSON', {}, 'btn2', 'download')}</div><p class="muted sm mt-2">Backup terenkripsi dilindungi kata sandi backup (AES-256-GCM). Backup biasa dapat dibaca siapa saja yang memegang file-nya.</p>
   <div class="sec mt-4">${I('csv')}<span>Ekspor CSV</span></div><div class="stack">${b('Pegawai', 'expCSV', {k:'emp'}, 'btn2', 'csv')}${b('SPPD', 'expSppd', {}, 'btn2', 'csv')}${b('Laporan', 'expRep', {}, 'btn2', 'csv')}</div></div>
   <div class="card">${cardH('Restore Data', 'upload')}<p class="muted sm">Impor berkas backup (.json biasa atau terenkripsi). Data diperiksa & dibersihkan terlebih dahulu; data lama diganti setelah konfirmasi dan verifikasi kata sandi Anda.</p><div class="stack mt-3">${b('Pilih File Backup', 'pickRestore', {}, 'btn2', 'folder')}</div></div></div>`;
-const bakData = () => ({app:'sim-sppd', v:1, data:Object.fromEntries(KEYS.map(k => [k, D[k]]))});
-act('bakJSON', async () => { if (!(await ask('Backup biasa TIDAK terenkripsi. Simpan file di tempat aman. Lanjutkan?', 'Unduh', false))) return; dl('backup_sppd_' + today() + '.json', JSON.stringify(bakData(), null, 1), 'application/json'); log('Ekspor backup JSON'); }, 'a');
+const bakData = plain => { const d = Object.fromEntries(KEYS.map(k => [k, D[k]])); if (plain && D.cfg.ai && Array.isArray(D.cfg.ai.models)) d.cfg = {...D.cfg, ai:{...D.cfg.ai, models:D.cfg.ai.models.map(m => ({...m, key:''}))}}; return {app:'sim-sppd', v:1, data:d}; };   // plain = JSON tanpa enkripsi → kunci API model AI tidak ikut
+act('bakJSON', async () => { if (!(await ask('Backup biasa TIDAK terenkripsi. Kunci API model AI tidak disertakan (pakai Backup Terenkripsi bila perlu). Simpan file di tempat aman. Lanjutkan?', 'Unduh', false))) return; dl('backup_sppd_' + today() + '.json', JSON.stringify(bakData(true), null, 1), 'application/json'); log('Ekspor backup JSON'); }, 'a');
 act('bakEnc', () => modal('Backup Terenkripsi', `<p class="muted sm mb-3">Buat kata sandi khusus backup. Tanpa kata sandi ini file tidak dapat dipulihkan.</p><div class="fgrid"><label class="fld"><span>Kata sandi backup</span><input id="bk1" type="password" class="in" autocomplete="new-password"></label><label class="fld"><span>Ulangi</span><input id="bk2" type="password" class="in" autocomplete="new-password"></label></div>`, async () => {
   const p = $('#bk1').value; if (p.length < 8) { toast('Kata sandi backup minimal 8 karakter', 'err'); return false; } if (p !== $('#bk2').value) { toast('Ulangi kata sandi tidak sama', 'err'); return false; }
   const salt = newSalt(), ct = await seal(await kdf(p, salt), bakData(), 'backup');
@@ -358,6 +358,7 @@ $('#fjson').addEventListener('change', async e => {
   const apply = async data => {
     try { for (const k of ['emp', 'prog', 'sppd', 'rep']) if (!Array.isArray(data[k])) throw 0; if (typeof data.cfg !== 'object') throw 0; } catch { return toast('Isi backup tidak lengkap/rusak', 'err'); }
     const clean = {}; try { KEYS.forEach(k => { if (data[k] !== undefined) { clean[k] = CLEAN[k](data[k]); if (ITEMS.includes(k)) stampOrder(clean[k]); } }); if (clean.apr === undefined) clean.apr = []; } catch { return toast('Isi backup tidak valid', 'err'); }
+    aiMergeRestore(clean.cfg, D.cfg.ai);   // backup lama/biasa tanpa model/kunci → pertahankan model & kunci yang sedang dipakai
     if (!(await ask(`Ganti seluruh data saat ini dengan isi backup? (${clean.emp.length} pegawai, ${clean.sppd.length} SPPD)`, 'Ganti Data'))) return;
     reauth('Konfirmasi kata sandi Anda untuk restore', async () => {
       const old = Object.fromEntries(KEYS.map(k => [k, D[k]]));
@@ -440,11 +441,11 @@ act('aprDel', async el => { const r = aprArgs(el), u = meA(); if (!r) return; co
   D.apr = D.apr.filter(x => x.id !== a.id); if (save('apr')) { log('Mencabut persetujuan ' + DOCN[d] + ' ' + (s.no || '')); toast('Persetujuan dicabut'); render(); } });
 
 /* ---------- Menu gabungan (v1.2.7): Pengaturan = Instansi + Tampilan & Tema; Pengguna & Backup = Pengguna & Peran + Backup & Restore ---------- */
-const ALIAS = {set:['peng', 'ins'], tampil:['peng', 'tm'], user:['akses', 'usr'], bak:['akses', 'usr']}, TABOK = {peng:['ins', 'tm']};
+const ALIAS = {set:['peng', 'ins'], tampil:['peng', 'tm'], ai:['peng', 'ai'], user:['akses', 'usr'], bak:['akses', 'usr']}, TABOK = {peng:['ins', 'tm', 'ai']};
 ST.peng = {t:'ins'}; ST.akses = {t:'usr'};
 const tabBar = (k, items) => `<div class="tabbar"><div class="segs">${items.map(([v, l, ic]) => `<button class="seg ${ST[k].t === v ? 'on' : ''}" data-act="tab" data-k="${k}" data-v="${v}">${I(ic)}<span>${l}</span></button>`).join('')}</div></div>`;
 act('tab', el => { const k = el.dataset.k; if (!own(TABOK, k) || !TABOK[k].includes(el.dataset.v)) return; if (k === 'peng' && ST.peng.t === 'ins') readCfg(); ST[k].t = el.dataset.v; render(); }, 'a');
-pages.peng = () => tabBar('peng', [['ins', 'Instansi & Penandatangan', 'building'], ['tm', 'Tampilan & Tema', 'palette']]) + (ST.peng.t === 'tm' ? pages.tampil() : pages.set());
+pages.peng = () => tabBar('peng', [['ins', 'Instansi & Penandatangan', 'building'], ['tm', 'Tampilan & Tema', 'palette'], ['ai', 'Model AI', 'sparkles']]) + (ST.peng.t === 'tm' ? pages.tampil() : ST.peng.t === 'ai' ? pages.ai() : pages.set());
 pages.akses = () => pages.user() + pages.bak();   /* satu halaman: pengguna di atas, backup & restore di bawah */
 AFTER.peng = () => { if (ST.peng.t === 'tm') AFTER.tampil(); else { const p = $('.kopprev .paper.mini'); if (p) { p.style.zoom = 1; p.style.zoom = Math.min(1, p.parentElement.clientWidth / p.offsetWidth).toFixed(3); } } };
 AFTER.akses = () => AFTER.user();

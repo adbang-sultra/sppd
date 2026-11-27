@@ -20,10 +20,13 @@ psql -c "select public.sppd_set_setup('kode-setup-uji-1234567890')"
 ```sh
 node tests/server.js 8801 local &      # aplikasi mode lokal
 node tests/server.js 8802 cloud &      # aplikasi mode cloud → PostgreSQL di atas
-node tests/run-local.js contoh-data/pegawai-biro-adm-pembangunan.csv     # 30 pemeriksaan
+node tests/run-local.js contoh-data/pegawai-biro-adm-pembangunan.csv     # antarmuka mode lokal (termasuk blok [AI-1.4])
+node tests/run-ai.js                                                       # 59 pemeriksaan api/ai.js — tanpa browser/DB; fetch & DNS ditiru
 node tests/run-cloud.js                                                    # 27 pemeriksaan (±4 menit; mengosongkan tabel sppd_* di basis data uji)
 OLD=/jalur/ke/sim-sppd-v1.1 node tests/run-migrasi.js                      # 12 pemeriksaan; perlu salinan v1.1
 ```
 Hasil cetak PDF/Word dan tangkapan layar disimpan di folder sementara (atur dengan `OUT=...`).
+
+**Catatan penulisan tes.** Aplikasi memakai CSP ketat (tanpa `unsafe-eval`): jangan memakai `page.waitForFunction` (di Playwright baru ia memakai `eval` dan diblokir) — pakai helper `until` di `lib.js`. Dialog memindahkan fokus ke kolom pertama ±60 ms setelah terbuka dan muncul dengan animasi ±300 ms: beri jeda (`sleep(300)`–`sleep(450)`) setelah `waitForSelector` pada dialog sebelum mengisi kolom atau mengambil tangkapan layar. Hindari kotak centang di dalam dialog (klik di dalam dialog di-`preventDefault` oleh penangan global); pakai `<select>`.
 
 **Jangan** arahkan `PGDATABASE` ke basis data produksi: `run-cloud.js` mengosongkan tabel `sppd_*`.
